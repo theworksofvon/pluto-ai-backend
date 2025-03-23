@@ -7,7 +7,7 @@ from routers import router
 from agency import Agency
 from agents import TwitterAgent, PredictionAgent
 from logger import logger
-
+from config import config
 
 app = FastAPI(
     title="Pluto AI",
@@ -35,6 +35,7 @@ async def startup():
     await Connections.create_connections()
     agency = Agency([PredictionAgent(), TwitterAgent()])
     logger.info(f"Agency initialized successfully and running, {agency}")
+    logger.info(f"Listening on port: {config.PORT}")
     # await agency.run()
 
 
@@ -47,4 +48,4 @@ async def shutdown():
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=config.PORT, reload=True)
