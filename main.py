@@ -48,5 +48,5 @@ async def shutdown():
 
 
 if __name__ == "__main__":
-    port = config.PORT if config.PORT else 8000
+    port = config.PORT if config.PORT else 10000
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
