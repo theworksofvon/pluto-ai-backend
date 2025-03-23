@@ -9,6 +9,11 @@ class Config(BaseSettings):
         description="Odds API api key", default=""
     )
     
+    PORT: int = Field(
+        description="Port",
+        default=8000,
+    )
+    
     ENVIRONMENT: str = Field(
         description="Environment",
         default="local",
