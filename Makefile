@@ -15,3 +15,9 @@ upgrade:
 
 downgrade:
 	alembic downgrade "$(r)"
+
+start:
+	uvicorn main:app --reload
+
+poetry-start:
+	poetry run make run
