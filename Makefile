@@ -20,4 +20,4 @@ start:
 	uvicorn main:app --reload
 
 poetry-start:
-	poetry run make run
+	poetry run uvicorn main:app --host 0.0.0.0 --port $$PORT
