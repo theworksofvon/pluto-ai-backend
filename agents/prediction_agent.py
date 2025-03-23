@@ -132,30 +132,31 @@ class PredictionAgent(Agent):
 
         Here's all the relevant data:
 
-        RECENT FORM (Last 5 games):
-        - Average:{f'{recent_form['recent_average_5']:.1f}' if recent_form['recent_average_5'] is not None else 'N/A'}
-        - 10-game average: {f'{recent_form['recent_average_10']:.1f}' if recent_form['recent_average_10'] else 'N/A'}
+      RECENT FORM (Last 5 games):
+        - Average: {f"{recent_form['recent_average_5']:.1f}" if recent_form['recent_average_5'] is not None else 'N/A'}
+        - 10-game average: {f"{recent_form['recent_average_10']:.1f}" if recent_form['recent_average_10'] else 'N/A'}
         - Recent high: {recent_form['recent_max']}
         - Recent low: {recent_form['recent_min']}
         - Trend: {recent_form['trend'] or 'Stable'}
         - Game values: {recent_form['recent_values']}
-        - Standard deviation: {f'{recent_form['std_deviation']:.2f}' if recent_form['std_deviation'] else 'N/A'}
+        - Standard deviation: {f"{recent_form['std_deviation']:.2f}" if recent_form['std_deviation'] else 'N/A'}
 
         SEASON STATS:
-        - Season average: {f'{season_stats['season_average']:.1f}' if season_stats['season_average'] else 'N/A'}
+        - Season average: {f"{season_stats['season_average']:.1f}" if season_stats['season_average'] else 'N/A'}
         - Season high: {season_stats['season_high']}
         - Season low: {season_stats['season_low']}
-        - Home average: {f'{season_stats['home_average']:.1f}' if season_stats['home_average'] else 'N/A'}
-        - Away average: {f'{season_stats['away_average']:.1f}' if season_stats['away_average'] else 'N/A'}
-        - Last 30 days average: {f'{season_stats['last_30_days_avg']:.1f}' if season_stats['last_30_days_avg'] else 'N/A'}
+        - Home average: {f"{season_stats['home_average']:.1f}" if season_stats['home_average'] else 'N/A'}
+        - Away average: {f"{season_stats['away_average']:.1f}" if season_stats['away_average'] else 'N/A'}
+        - Last 30 days average: {f"{season_stats['last_30_days_avg']:.1f}" if season_stats['last_30_days_avg'] else 'N/A'}
         - Total games: {season_stats['total_games']}
 
         TEAM MATCHUP vs {opposing_team}:
         - Games against opponent: {team_matchup['games_vs_opponent']}
-        - Average vs opponent: {f'{team_matchup['avg_vs_opponent']:.1f}' if team_matchup['avg_vs_opponent'] else 'N/A'}
+        - Average vs opponent: {f"{team_matchup['avg_vs_opponent']:.1f}" if team_matchup['avg_vs_opponent'] else 'N/A'}
         - Max vs opponent: {team_matchup['max_vs_opponent']}
         - Last game vs opponent: {team_matchup['last_game_vs_opponent']} on {team_matchup['last_game_date'] or 'N/A'}
-        - Performance vs opponent compared to season average: {f'{team_matchup['comparison_to_season_avg']:.1f}%'} {' higher' if team_matchup['comparison_to_season_avg'] and team_matchup['comparison_to_season_avg'] > 0 else ' lower' if team_matchup['comparison_to_season_avg'] and team_matchup['comparison_to_season_avg'] < 0 else ''} than season average
+        - Performance vs opponent compared to season average: {f"{team_matchup['comparison_to_season_avg']:.1f}%"} {' higher' if team_matchup['comparison_to_season_avg'] and team_matchup['comparison_to_season_avg'] > 0 else ' lower' if team_matchup['comparison_to_season_avg'] and team_matchup['comparison_to_season_avg'] < 0 else ''} than season average
+
 
         VEGAS ODDS:
         - Game over/under: {vegas_factors['over_under']}
@@ -190,6 +191,7 @@ class PredictionAgent(Agent):
         """
 
         response = await self.prompt(prompt)
+        logger.info(f"Prediction prompt: {prompt}")
         logger.info(
             f"Prediction response for player {player_name} on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {response}"
         )
