@@ -30,7 +30,7 @@ class PredictionAgent(Agent):
             """,
             tendencies=prediction_personality,
             role="pilot",
-            model="deepseek-r1:7b",
+            model="openai-deepseek-reasoner",
             **kwargs,
         )
         self.prediction_service = PredictionService()

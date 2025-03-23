@@ -36,6 +36,14 @@ class Config(BaseSettings):
     )
     SQL_ECHO: bool = False
     
+    OLLAMA_API_URL: str = os.environ.get("OLLAMA_API_URL", "")
+    OLLAMA_MODEL_NAME: str = os.environ.get(
+        "OLLAMA_MODEL_NAME", ""
+    )
+    OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
+
+
+    
     class Config:
         env_file = ".env" if os.environ.get("ENVIRONMENT", "local") == "local" else ".env.prod"
         env_file_encoding = 'utf-8'

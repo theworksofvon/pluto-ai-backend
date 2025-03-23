@@ -1,5 +1,5 @@
 run:
-	PYTHONPATH="../../:." python3 -B main.py
+	python3 -B main.py
 
 setup:
 	pip install -r requirements.txt

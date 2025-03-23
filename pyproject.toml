@@ -9,7 +9,6 @@ readme = "README.md"
 requires-python = ">=3.10,<3.13"
 dependencies = [
     "pipreqs (>=0.5.0,<0.6.0)",
-    "agency @ file:///Users/davontaejackson/dev/pluto-ai/agency",
     "aiohttp (>=3.11.13,<4.0.0)",
     "fastapi (>=0.115.11,<0.116.0)",
     "pandas (>=2.2.3,<3.0.0)",
@@ -25,7 +24,7 @@ dependencies = [
     "nba-api (>=1.7,<2.0)",
     "datasets (>=3.3.2,<4.0.0)",
     "alembic (>=1.15.1,<2.0.0)",
-    "asyncpg (>=0.30.0,<0.31.0)"
+    "asyncpg (>=0.30.0,<0.31.0)",
 ]
 
 
@@ -37,4 +36,3 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 package-mode = false
 [tool.poetry.dependencies]
-agency = {develop = true}
