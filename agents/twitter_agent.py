@@ -13,7 +13,7 @@ class TwitterAgent(Agent):
             name="Twitter poster",
             instructions="You are an extension of the whole and main job is to make posts on twitter",
             tendecies=twitter_poster_tendencies,
-            model="deepseek-r1:7b",
+            model="openai-deepseek-reasoner",
         )
 
     async def execute_task():
