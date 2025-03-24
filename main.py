@@ -33,6 +33,7 @@ app.include_router(router)
 
 @app.on_event("startup")
 async def startup():
+    logger.info(f"Starting Pluto AI API")
     await Connections.create_connections()
     agency = Agency([PredictionAgent(), TwitterAgent()])
     logger.info(f"Agency initialized successfully and running, {agency}")
