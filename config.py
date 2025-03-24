@@ -11,7 +11,7 @@ class Config(BaseSettings):
     
     PORT: int = Field(
         description="Port",
-        default=8000,
+        default=8080,
     )
     
     ENVIRONMENT: str = Field(
