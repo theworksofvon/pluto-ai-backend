@@ -71,8 +71,6 @@ class OddsService:
                 markets="h2h,spreads,totals",
             )
 
-            logger.info(f"Result: {result}")
-
             if result.status_code != 200:
                 logger.error(f"Error fetching odds: {result.response}")
                 raise Exception(f"Error fetching odds: {result.response}")

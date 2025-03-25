@@ -152,46 +152,48 @@ class PredictionService:
         self, player_name: str, opposing_team: str
     ) -> Dict[str, Any]:
         """
-        Extracts the highest line scores for each stat type for a given player,
-        filtering the props by the opposing team.
+        Extracts PrizePicks factors for a player filtered by the opposing team.
+        For each stat type, the highest line score is kept.
 
         Args:
-            player_name (str): The player's name.
-            opposing_team (str): The opposing team name to filter props.
+            player_name (str): The name of the player.
+            opposing_team (str): The name of the opposing team to filter props.
 
         Returns:
-            Dict[str, Any]: A dictionary with keys formatted as
-            "{player_name}: {stat_type}" and values as the highest line score.
+            Dict[str, Any]: A dictionary mapping keys formatted as
+                            "{player_name}: {stat_type}" to the highest line score.
         """
+        if not player_name:
+            logger.warning("No player name provided for PrizePicks factors")
+            return {}
+
         try:
             prizepicks_data = await self.prizepicks.get_nba_lines(
                 player_name=player_name
             )
             if not prizepicks_data:
-                logger.warning(f"No PrizePicks data found for {player_name}")
+                logger.warning(f"No PrizePicks data found for player: {player_name}")
                 return {}
 
-            opposing_team_norm = opposing_team.lower()
+            best_props: Dict[str, Any] = {}
 
-            formatted_props: Dict[str, Any] = {}
             for prop in prizepicks_data:
-                opponent = prop.get("opponent", "").lower()
-                if opponent and opponent != opposing_team_norm:
-                    continue
-
                 stat_type = prop.get("stat_type")
                 line_score = prop.get("line_score")
-                if stat_type is None or line_score is None:
+                if not stat_type or line_score is None:
+                    logger.debug(
+                        f"Skipping prop due to missing data - stat_type: {stat_type}, line_score: {line_score}"
+                    )
                     continue
 
-                # Use max to determine the highest line score for the given stat type.
-                formatted_props[stat_type] = max(
-                    formatted_props.get(stat_type, line_score), line_score
+                # Keep the highest line score for each stat type.
+                best_props[stat_type] = max(
+                    best_props.get(stat_type, line_score), line_score
                 )
 
             result = {
                 f"{player_name}: {stat_type}": score
-                for stat_type, score in formatted_props.items()
+                for stat_type, score in best_props.items()
             }
             logger.info(f"Formatted PrizePicks data for {player_name}: {result}")
             return result
