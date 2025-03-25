@@ -41,13 +41,31 @@ class Config(BaseSettings):
     )
     SQL_ECHO: bool = False
     
-    OLLAMA_API_URL: str = os.environ.get("OLLAMA_API_URL", "")
-    OLLAMA_MODEL_NAME: str = os.environ.get(
-        "OLLAMA_MODEL_NAME", ""
+    
+    
+    OLLAMA_API_URL: str = Field(
+        description="Ollama API URL",
+        default="",
     )
-    OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
-
-
+    OLLAMA_MODEL_NAME: str = Field(
+        description="Ollama model name",
+        default="",
+    )
+    OPENAI_API_KEY: str = Field(
+        description="OpenAI API key",
+        default="",
+    )
+    
+    ACCESS_TOKEN: str = Field(
+        description="Access token",
+        default="",
+    )
+    
+    JWT_SUPABASE_SECRET: str = Field(
+        description="JWT Supabase secret",
+        default="",
+    )
+    
     
     class Config:
         env_file = ".env" if os.environ.get("ENVIRONMENT", "local") == "local" else ".env.prod"
