@@ -22,4 +22,12 @@ class AuthInterface:
     def decode_access_token(self, token: str) -> dict | None:
         """Decode a JWT token. Returns the payload or None if invalid."""
         raise NotImplementedError()
+    
+    async def authenticate_user(self, token: str) -> bool:
+        """Authenticate a user with a token."""
+        raise NotImplementedError()
+    
+    async def authenticate_or_static_token(self, token: str) -> bool:
+        """Authenticate a user with a token or use a static token."""
+        raise NotImplementedError()
 

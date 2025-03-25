@@ -60,8 +60,12 @@ class Config(BaseSettings):
         description="Access token",
         default="",
     )
-
-
+    
+    JWT_SUPABASE_SECRET: str = Field(
+        description="JWT Supabase secret",
+        default="",
+    )
+    
     
     class Config:
         env_file = ".env" if os.environ.get("ENVIRONMENT", "local") == "local" else ".env.prod"
