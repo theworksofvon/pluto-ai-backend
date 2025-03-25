@@ -122,7 +122,7 @@ class CommunicationProtocol:
         Returns:
             str: The model's response.
         """
-        api_key = self.config.openai_api_key or os.getenv("OPENAI_API_KEY")
+        api_key = self.config.OPENAI_API_KEY or os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OpenAI API key is missing.")
         client = OpenAI(base_url="https://api.deepseek.com/v1", api_key=api_key)
