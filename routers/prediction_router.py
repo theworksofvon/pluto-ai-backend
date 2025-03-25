@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, Body
+from fastapi import APIRouter, HTTPException, Depends, Query, Body, status
 from typing import Optional, Union
 from datetime import datetime
 from models import PredictionRequest, PredictionValue, PredictionResponse
@@ -30,6 +30,7 @@ def get_data_pipeline() -> DataProcessor:
 @router.post(
     "/player/{prediction_type}",
     response_model=PredictionResponse,
+    status_code=status.HTTP_200_OK,
 )
 async def predict_player_performance(
     prediction_type: str = "points",

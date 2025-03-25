@@ -98,6 +98,7 @@ class PredictionAgent(Agent):
             "prediction_type": prediction_type,
             "prediction": prediction_data,
             "recent_form": context.get("recent_form"),
+            "prizepicks_factors": context.get("prizepicks_factors"),
             "vegas_factors": context.get("vegas_factors"),
             "timestamp": context.get("timestamp"),
             "model_prediction": context.get("model_prediction", "not available"),
@@ -123,7 +124,8 @@ class PredictionAgent(Agent):
         team_matchup = context["team_matchup"]
         season_stats = context["season_stats"]
         advanced_metrics = context["advanced_metrics"]
-
+        prizepicks_factors = context["prizepicks_factors"]
+        
         logger.info(f"Agent Player Name: {player_name}")
         logger.info(f"Agent Prediction Type: {prediction_type}")
         logger.info(f"Agent Opposing Team: {opposing_team}")
@@ -168,6 +170,9 @@ class PredictionAgent(Agent):
         - Team spread: {vegas_factors['team_spread']}
         - Implied team total: {vegas_factors['implied_team_total']}
         - Favorite status: {vegas_factors['favorite_status']}
+        
+        PRIZEPICKS FACTORS:
+        - {prizepicks_factors}
 
         ADVANCED METRICS:
         - Consistency score (0-1, higher = more consistent): {advanced_metrics['consistency_score']}
