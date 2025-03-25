@@ -5,7 +5,7 @@ from .db.abstract_uow import AbstractUnitOfWork
 from .auth.interface import AuthInterface
 from .auth.auth import StaticAuthAdapter
 from connections import Connections
-
+from .prizepicks import PrizePicksAdapter
 
 class Adapters:
     vegas_odds: VegasOddsInterface
@@ -17,6 +17,7 @@ class Adapters:
         self.vegas_odds = VegasOddsPipeline()
         self.nba_analytics = NbaAnalyticsPipeline()
         self.auth = StaticAuthAdapter()
+        self.prizepicks = PrizePicksAdapter()
         
     @property
     def uow(self) -> AbstractUnitOfWork:

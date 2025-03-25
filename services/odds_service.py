@@ -1,12 +1,12 @@
 from datetime import date, datetime
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Set
 
 from pydantic import BaseModel
 
 from adapters import Adapters, VegasOddsInterface
 from config import config
 from logger import logger
-
+from adapters.prizepicks import PrizePicksAdapter
 
 class TeamOdds(BaseModel):
     team_name: str
@@ -33,7 +33,18 @@ class OddsService:
         self.api_key = api_key or config.ODDS_API_KEY
         self.adapters = Adapters()
         self.odds_api: VegasOddsInterface = self.adapters.vegas_odds
-
+        self.prizepicks: PrizePicksAdapter = self.adapters.prizepicks
+        
+    async def get_prizepicks_lines(self, player_name: str, stat_types: Set[str] = {"Points"}) -> List[Dict[str, Any]]:
+        """Get PrizePicks lines for the specified stat types and player name."""
+        try:
+            logger.info(f"Getting PrizePicks lines for player: {player_name}")
+            result = await self.prizepicks.get_nba_lines(stat_types, player_name)
+            return result
+        except Exception as e:
+            logger.error(f"Error in get_prizepicks_lines: {str(e)}")
+            raise
+        
     async def get_sports(self) -> List[Dict[str, Any]]:
         """Get available sports from the Odds API."""
         try:

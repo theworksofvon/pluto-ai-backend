@@ -32,3 +32,14 @@ async def get_available_sports(service: OddsService = Depends(get_odds_service))
         return await service.get_sports()
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Error fetching sports: {str(e)}")
+
+
+@router.get("/prizepicks/{player_name}", response_model=List[dict])
+async def get_prizepicks_lines(player_name: str, service: OddsService = Depends(get_odds_service)):
+    """
+    Get PrizePicks lines for the specified sport
+    """
+    try:
+        return await service.get_prizepicks_lines(player_name)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Error fetching PrizePicks lines: {str(e)}")
