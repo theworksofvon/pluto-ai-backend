@@ -3,7 +3,7 @@ from fastapi import Header
 
 class AuthInterface:
     """Interface for authentication adapters."""
-    def verify_static_token(self, authorization: str | None = Header(None)) -> None:
+    def verify_static_token(self, bearer_token: str | None = None) -> None:
         """Verify a static API Key."""
         raise NotImplementedError()
 

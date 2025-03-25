@@ -37,8 +37,6 @@ async def startup():
     await Connections.create_connections()
     agency = Agency([PredictionAgent(), TwitterAgent()])
     logger.info(f"Agency initialized successfully and running, {agency}")
-    logger.info(f"Listening on port: {config.PORT}")
-    # await agency.run()
 
 
 @app.on_event("shutdown")

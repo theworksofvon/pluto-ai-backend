@@ -1,7 +1,4 @@
-# adapters/auth.py
-from datetime import timedelta
 from adapters.auth.interface import AuthInterface
-from passlib.context import CryptContext
 from fastapi import HTTPException, status, Header
 from config import config
 
@@ -14,24 +11,24 @@ class StaticAuthAdapter(AuthInterface):
     def __init__(self):
         self.static_token = config.ACCESS_TOKEN
         
-    def verify_static_token(authorization: str | None = Header(None)) -> None:
+    def verify_static_token(self, bearer_token: str | None = None) -> None:
         """
         Checks that the request includes a valid token in the Authorization header.
         Expects header in format: "Bearer <token>"
         """
-        if not authorization:
+        if not bearer_token:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Missing Authorization header"
             )
         try:
-            scheme, token = authorization.split()   
+            scheme, token = bearer_token.split()   
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid Authorization header format"
             )
-        if scheme.lower() != "bearer" or token != config.ACCESS_TOKEN:
+        if scheme.lower() != "bearer" or token != self.static_token:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token"
