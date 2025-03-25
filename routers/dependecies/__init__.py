@@ -13,6 +13,6 @@ async def protected_route(authorization: str | None = Header(None)):
         )
     logger.info(f"Authorizing request...")
     adapters = Adapters()
-    await adapters.static_auth.authenticate_or_static_token(token=authorization)
+    await adapters.auth.authenticate_or_static_token(token=authorization)
     logger.info(f"Request authorized")
     return True

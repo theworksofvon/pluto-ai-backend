@@ -11,12 +11,12 @@ class Adapters:
     vegas_odds: VegasOddsInterface
     nba_analytics: NbaAnalyticsInterface
     _uow: AbstractUnitOfWork
-    static_auth: AuthInterface
+    auth: AuthInterface
 
     def __init__(self):
         self.vegas_odds = VegasOddsPipeline()
         self.nba_analytics = NbaAnalyticsPipeline()
-        self.static_auth = StaticAuthAdapter()
+        self.auth = StaticAuthAdapter()
         
     @property
     def uow(self) -> AbstractUnitOfWork:

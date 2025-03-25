@@ -33,10 +33,10 @@ class StaticAuthAdapter(AuthInterface):
                 detail="Invalid Authorization header format"
             )
         if token != self.static_token:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token"
-            )
+            logger.info(f"Static token not verified...")
+            return False
+        logger.info(f"Static token verified...")
+        return True
             
     async def authenticate_user(self, token: str) -> bool:
         """
