@@ -5,6 +5,7 @@ from aiohttp import ClientSession
 from datetime import datetime, timezone
 from logger import logger
 
+
 class VegasOddsPipeline(VegasOddsInterface):
     def __init__(self) -> None:
         self.api_key = config.ODDS_API_KEY

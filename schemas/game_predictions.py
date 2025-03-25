@@ -66,10 +66,11 @@ class GamePredictionRead(BaseModel):
     class Config:
         orm_mode = True
 
+
 class PlayerPredictionCreate(BaseModel):
     prediction_id: int
     player_id: int
-    predicted_points: float 
+    predicted_points: float
     predicted_assists: float | None = None
     predicted_rebounds: float | None = None
 

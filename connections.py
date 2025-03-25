@@ -2,6 +2,7 @@ import sys
 from clients.sqlalchemy import SQLAlchemyClient
 from config import config
 from logger import logger
+
 sqlalchemy_client = SQLAlchemyClient()
 
 

@@ -5,7 +5,11 @@ from typing import Dict, Optional, Any
 import json
 from logger import logger
 from datetime import datetime
-from agents.helpers.prediction_helpers import parse_prediction_response, DEFAULT_PREDICTION
+from agents.helpers.prediction_helpers import (
+    parse_prediction_response,
+    DEFAULT_PREDICTION,
+)
+
 
 class PredictionAgent(Agent):
     """
@@ -100,6 +104,7 @@ class PredictionAgent(Agent):
         }
 
         return result
+
     async def _generate_prediction(self, context: Dict[str, Any]) -> str:
         """
         Generate a prediction using the LLM based on the prepared context.

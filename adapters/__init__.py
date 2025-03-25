@@ -7,6 +7,7 @@ from .auth.auth import StaticAuthAdapter
 from connections import Connections
 from .prizepicks import PrizePicksAdapter
 
+
 class Adapters:
     vegas_odds: VegasOddsInterface
     nba_analytics: NbaAnalyticsInterface
@@ -18,12 +19,13 @@ class Adapters:
         self.nba_analytics = NbaAnalyticsPipeline()
         self.auth = StaticAuthAdapter()
         self.prizepicks = PrizePicksAdapter()
-        
+
     @property
     def uow(self) -> AbstractUnitOfWork:
         if self._uow is None:
             if Connections.db is None:
-                raise Exception("Database connection not initialized yet. Ensure startup events have completed.")
+                raise Exception(
+                    "Database connection not initialized yet. Ensure startup events have completed."
+                )
             self._uow = SQLAlchemyUnitOfWork(Connections.db.session_factory)
         return self._uow
-        

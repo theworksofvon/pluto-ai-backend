@@ -1,3 +1,3 @@
 from .prizepicks import PrizePicksAdapter
 
-__all__ = ['PrizePicksAdapter']
+__all__ = ["PrizePicksAdapter"]
