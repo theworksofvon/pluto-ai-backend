@@ -1,11 +1,12 @@
 from datetime import date, datetime
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Set
 
 from pydantic import BaseModel
 
 from adapters import Adapters, VegasOddsInterface
 from config import config
 from logger import logger
+from adapters.prizepicks import PrizePicksAdapter
 
 
 class TeamOdds(BaseModel):
@@ -33,6 +34,19 @@ class OddsService:
         self.api_key = api_key or config.ODDS_API_KEY
         self.adapters = Adapters()
         self.odds_api: VegasOddsInterface = self.adapters.vegas_odds
+        self.prizepicks: PrizePicksAdapter = self.adapters.prizepicks
+
+    async def get_prizepicks_lines(
+        self, player_name: str, stat_types: Set[str] = {"Points"}
+    ) -> List[Dict[str, Any]]:
+        """Get PrizePicks lines for the specified stat types and player name."""
+        try:
+            logger.info(f"Getting PrizePicks lines for player: {player_name}")
+            result = await self.prizepicks.get_nba_lines(stat_types, player_name)
+            return result
+        except Exception as e:
+            logger.error(f"Error in get_prizepicks_lines: {str(e)}")
+            raise
 
     async def get_sports(self) -> List[Dict[str, Any]]:
         """Get available sports from the Odds API."""
@@ -46,7 +60,9 @@ class OddsService:
             logger.error(f"Error in get_sports: {str(e)}")
             raise
 
-    async def get_todays_odds(self, sport: str = "basketball_nba", team: str = None) -> List[GameOdds]:
+    async def get_todays_odds(
+        self, sport: str = "basketball_nba", team: str = None
+    ) -> List[GameOdds]:
         """Get today's odds for the specified sport."""
         try:
             result = await self.odds_api.get_current_odds(
@@ -54,8 +70,6 @@ class OddsService:
                 regions="us",
                 markets="h2h,spreads,totals",
             )
-            
-            logger.info(f"Result: {result}")
 
             if result.status_code != 200:
                 logger.error(f"Error fetching odds: {result.response}")
@@ -70,7 +84,7 @@ class OddsService:
                 # Skip games with no bookmakers data.
                 if not game.get("bookmakers"):
                     continue
-                
+
                 if team and game["home_team"] != team and game["away_team"] != team:
                     continue
 
@@ -96,10 +110,12 @@ class OddsService:
             logger.error(f"Error in get_todays_odds: {str(e)}")
             raise
 
-    def _parse_markets(self, game: Dict[str, Any], markets: Dict[str, List[Dict[str, Any]]]):
+    def _parse_markets(
+        self, game: Dict[str, Any], markets: Dict[str, List[Dict[str, Any]]]
+    ):
         """
         Parse market data to extract odds for both teams.
-        
+
         Returns:
             A tuple (home_team_data, away_team_data, bookmaker_key).
         """

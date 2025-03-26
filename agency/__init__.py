@@ -10,4 +10,15 @@ from .exceptions import *
 from .session import Session
 
 
-__all__ = ["CommunicationProtocol", "Agency", "Agent", "Tendencies", "ReasoningEngine", "Retriever", "Tool", "config", "CommunicationsProtocolError", "Session"]
+__all__ = [
+    "CommunicationProtocol",
+    "Agency",
+    "Agent",
+    "Tendencies",
+    "ReasoningEngine",
+    "Retriever",
+    "Tool",
+    "config",
+    "CommunicationsProtocolError",
+    "Session",
+]

@@ -4,6 +4,7 @@ import aiohttp
 from openai import OpenAI
 from config import config
 from .exceptions import CommunicationsProtocolError
+from logger import logger
 
 
 class CommunicationProtocol:
@@ -25,7 +26,7 @@ class CommunicationProtocol:
         """
         self.model = model.lower()
         self.config = config
-        self.default_open_ai_model = "deepseek-chat"
+        self.default_open_ai_model = "deepseek-reasoner"
         self.personality = personality  # Personality of the agent
         self.history: List[Dict[str, str]] = (
             []
@@ -122,7 +123,7 @@ class CommunicationProtocol:
         Returns:
             str: The model's response.
         """
-        api_key = self.config.get("openai_api_key", os.getenv("OPENAI_API_KEY"))
+        api_key = self.config.OPENAI_API_KEY or os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OpenAI API key is missing.")
         client = OpenAI(base_url="https://api.deepseek.com/v1", api_key=api_key)
@@ -130,7 +131,7 @@ class CommunicationProtocol:
 
         try:
             completion = client.chat.completions.create(
-                model=model_name if model_name else self.default_open_ai_model,
+                model=self.default_open_ai_model,
                 messages=[{"role": "user", "content": f"{prompt}"}],
                 stream=False,
             )

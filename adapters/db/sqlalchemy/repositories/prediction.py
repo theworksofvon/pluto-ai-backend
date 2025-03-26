@@ -1,6 +1,6 @@
 from adapters.db.repositories import (
     PlayerPredictionRepository,
-    GamePredictionRepository
+    GamePredictionRepository,
 )
 from adapters.db.sqlalchemy.tables import PlayerPrediction, GamePrediction
 from schemas import (
@@ -32,7 +32,10 @@ class SQLAlchemyPlayerPredictionRepository(PlayerPredictionRepository):
         for key, value in kwargs.items():
             if hasattr(PlayerPrediction, key):
                 query = query.filter(getattr(PlayerPrediction, key) == value)
-        return [PlayerPredictionRead.from_orm(prediction) for prediction in await query.all()]
+        return [
+            PlayerPredictionRead.from_orm(prediction)
+            for prediction in await query.all()
+        ]
 
 
 class SQLAlchemyGamePredictionRepository(GamePredictionRepository):
@@ -54,4 +57,6 @@ class SQLAlchemyGamePredictionRepository(GamePredictionRepository):
         for key, value in kwargs.items():
             if hasattr(GamePrediction, key):
                 query = query.filter(getattr(GamePrediction, key) == value)
-        return [GamePredictionRead.from_orm(prediction) for prediction in await query.all()]
+        return [
+            GamePredictionRead.from_orm(prediction) for prediction in await query.all()
+        ]

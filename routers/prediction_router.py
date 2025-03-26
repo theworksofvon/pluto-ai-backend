@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, Body
+from fastapi import APIRouter, HTTPException, Depends, Query, Body, status
 from typing import Optional, Union
 from datetime import datetime
 from models import PredictionRequest, PredictionValue, PredictionResponse
@@ -22,6 +22,7 @@ def get_prediction_agent() -> PredictionAgent:
 def get_prediction_service() -> PredictionService:
     return PredictionService()
 
+
 def get_data_pipeline() -> DataProcessor:
     return DataProcessor()
 
@@ -29,6 +30,7 @@ def get_data_pipeline() -> DataProcessor:
 @router.post(
     "/player/{prediction_type}",
     response_model=PredictionResponse,
+    status_code=status.HTTP_200_OK,
 )
 async def predict_player_performance(
     prediction_type: str = "points",
@@ -85,6 +87,7 @@ async def predict_player_performance(
         logger.error(f"Error making prediction: {e}")
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
 
+
 @router.get("/context/{player_name}")
 async def get_prediction_context(
     player_name: str,
@@ -113,6 +116,7 @@ async def get_prediction_context(
     except Exception as e:
         logger.error(f"Error getting prediction context: {e}")
         raise HTTPException(status_code=500, detail=f"Context error: {str(e)}")
+
 
 @router.get("/update-pluto-dataset")
 async def update_pluto_dataset(

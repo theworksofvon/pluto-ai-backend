@@ -80,7 +80,9 @@ class ReasoningEngine:
     def _create_decision_prompt(self) -> str:
         """Create a prompt for the agent to make a decision"""
         tools_info = "\n".join(
-            [f"- {tool.name}: {tool.description}\n" for tool in self.tools] if self.tools else "No tools available"
+            [f"- {tool.name}: {tool.description}\n" for tool in self.tools]
+            if self.tools
+            else "No tools available"
         )
 
         return f"""Given the following task and ONLY THE AVAILABLE TOOLS, decide which tool would be most appropriate to use.

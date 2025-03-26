@@ -10,6 +10,9 @@ revision:
 upgrade:
 	alembic upgrade head
 
+format:
+	poetry run black .
+
 downgrade:
 	alembic downgrade "$(r)"
 

@@ -114,7 +114,9 @@ class Client(ABC):
             except Exception as e:
                 retry_count += 1
                 if retry_count > self._max_retries:
-                    logger.info(f"{self.name}: Max retry attempts reached. Last error: {e}")
+                    logger.info(
+                        f"{self.name}: Max retry attempts reached. Last error: {e}"
+                    )
                     self.emit(self.Events.END, str(e))
                     raise
                 else:

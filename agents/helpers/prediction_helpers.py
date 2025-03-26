@@ -35,7 +35,9 @@ def parse_prediction_response(response: str) -> Dict[str, Any]:
         prediction_data = json.loads(response)
         logger.info("Successfully parsed JSON directly.")
     except json.JSONDecodeError:
-        logger.warning("Direct JSON parsing failed. Attempting to extract JSON via regex.")
+        logger.warning(
+            "Direct JSON parsing failed. Attempting to extract JSON via regex."
+        )
         # Try to extract JSON from a code block.
         json_block_match = JSON_CODE_BLOCK_RE.search(response)
         if json_block_match:
@@ -51,7 +53,7 @@ def parse_prediction_response(response: str) -> Dict[str, Any]:
                 logger.info("Successfully parsed JSON from code block.")
             except json.JSONDecodeError:
                 logger.error("Failed to parse JSON from code block.")
-        
+
         # If that didn't work, try to extract a dictionary-like structure.
         if not prediction_data:
             dict_match = DICT_STRUCTURE_RE.search(response)
@@ -68,7 +70,7 @@ def parse_prediction_response(response: str) -> Dict[str, Any]:
                     logger.info("Successfully parsed JSON from dictionary structure.")
                 except json.JSONDecodeError:
                     logger.error("Failed to parse JSON from dictionary structure.")
-        
+
         # If still not parsed, try to extract individual fields.
         if not prediction_data or prediction_data.get("value") is None:
             prediction_data = {}

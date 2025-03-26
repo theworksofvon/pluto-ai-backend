@@ -6,6 +6,7 @@ from .data_pipeline import DataProcessor
 from logger import logger
 import os
 import joblib
+from adapters import Adapters
 
 
 class PredictionService:
@@ -17,6 +18,8 @@ class PredictionService:
     def __init__(self):
         super().__init__()
         self.data_processor = DataProcessor()
+        self.adapters = Adapters()
+        self.prizepicks = self.adapters.prizepicks
 
         self.models = {}
         self.scalers = {}
@@ -108,6 +111,10 @@ class PredictionService:
             odds_data, player_name, opposing_team
         )
 
+        prizepicks_factors = await self._extract_prizepicks_factors(
+            player_name, opposing_team
+        )
+
         team_matchup = self._analyze_team_matchup(
             player_stats, prediction_type, opposing_team
         )
@@ -130,6 +137,7 @@ class PredictionService:
             "prediction_type": prediction_type,
             "recent_form": recent_form,
             "vegas_factors": vegas_factors,
+            "prizepicks_factors": prizepicks_factors,
             "team_matchup": team_matchup,
             "season_stats": season_stats,
             "advanced_metrics": advanced_metrics,
@@ -139,6 +147,60 @@ class PredictionService:
             },
             "timestamp": datetime.now().isoformat(),
         }
+
+    async def _extract_prizepicks_factors(
+        self, player_name: str, opposing_team: str
+    ) -> Dict[str, Any]:
+        """
+        Extracts PrizePicks factors for a player filtered by the opposing team.
+        For each stat type, the highest line score is kept.
+
+        Args:
+            player_name (str): The name of the player.
+            opposing_team (str): The name of the opposing team to filter props.
+
+        Returns:
+            Dict[str, Any]: A dictionary mapping keys formatted as
+                            "{player_name}: {stat_type}" to the highest line score.
+        """
+        if not player_name:
+            logger.warning("No player name provided for PrizePicks factors")
+            return {}
+
+        try:
+            prizepicks_data = await self.prizepicks.get_nba_lines(
+                player_name=player_name
+            )
+            if not prizepicks_data:
+                logger.warning(f"No PrizePicks data found for player: {player_name}")
+                return {}
+
+            best_props: Dict[str, Any] = {}
+
+            for prop in prizepicks_data:
+                stat_type = prop.get("stat_type")
+                line_score = prop.get("line_score")
+                if not stat_type or line_score is None:
+                    logger.debug(
+                        f"Skipping prop due to missing data - stat_type: {stat_type}, line_score: {line_score}"
+                    )
+                    continue
+
+                # Keep the highest line score for each stat type.
+                best_props[stat_type] = max(
+                    best_props.get(stat_type, line_score), line_score
+                )
+
+            result = {
+                f"{player_name}: {stat_type}": score
+                for stat_type, score in best_props.items()
+            }
+            logger.info(f"Formatted PrizePicks data for {player_name}: {result}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error extracting PrizePicks factors for {player_name}: {e}")
+            return {}
 
     def _analyze_player_form(
         self, player_stats: pd.DataFrame, stat_type: str
