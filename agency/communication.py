@@ -4,6 +4,7 @@ import aiohttp
 from openai import OpenAI
 from config import config
 from .exceptions import CommunicationsProtocolError
+from logger import logger
 
 
 class CommunicationProtocol:
@@ -25,7 +26,7 @@ class CommunicationProtocol:
         """
         self.model = model.lower()
         self.config = config
-        self.default_open_ai_model = "deepseek-chat"
+        self.default_open_ai_model = "deepseek-reasoner"
         self.personality = personality  # Personality of the agent
         self.history: List[Dict[str, str]] = (
             []
@@ -130,7 +131,7 @@ class CommunicationProtocol:
 
         try:
             completion = client.chat.completions.create(
-                model=model_name if model_name else self.default_open_ai_model,
+                model=self.default_open_ai_model,
                 messages=[{"role": "user", "content": f"{prompt}"}],
                 stream=False,
             )
