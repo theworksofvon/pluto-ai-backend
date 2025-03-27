@@ -1,9 +1,4 @@
 from ..abstract_uow import AbstractUnitOfWork
-from .repositories.game import SQLAlchemyGameRepository
-from .repositories.team import SQLAlchemyTeamRepository
-from .repositories.player import (
-    SQLAlchemyPlayerRepository,
-)
 from .repositories.prediction import (
     SQLAlchemyPlayerPredictionRepository,
     SQLAlchemyGamePredictionRepository,
@@ -18,13 +13,8 @@ class SQLAlchemyUnitOfWork(AbstractUnitOfWork):
     async def __aenter__(self):
         await super().__aenter__()
         self.session = self.session_factory()
-
-        self.games = SQLAlchemyGameRepository(self.session)
-        self.teams = SQLAlchemyTeamRepository(self.session)
-        self.players = SQLAlchemyPlayerRepository(self.session)
         self.player_predictions = SQLAlchemyPlayerPredictionRepository(self.session)
         self.game_predictions = SQLAlchemyGamePredictionRepository(self.session)
-
         return self
 
     async def commit(self):

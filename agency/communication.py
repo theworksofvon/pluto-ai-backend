@@ -55,7 +55,7 @@ class CommunicationProtocol:
         full_prompt = self._build_prompt(prompt, sender)
 
         if self.model.startswith("openai"):
-            response = await self._send_to_openai(full_prompt)
+            response = await self._send_to_openai(full_prompt, format)
         else:
             response = await self._send_to_ollama(full_prompt, format)
         try:
@@ -113,13 +113,13 @@ class CommunicationProtocol:
                 print(error_message)
                 raise CommunicationsProtocolError(error_message, status_code=400)
 
-    async def _send_to_openai(self, prompt: str, model: Optional[str] = None) -> str:
+    async def _send_to_openai(self, prompt: str, format: Optional[Dict] = {"type": "json_object"}) -> str:
         """
-        Handle communication with the OpenAI API.
+        Handle communication with a remote OpenAI model.
 
         Args:
             prompt (str): The input prompt for the model.
-
+            format (Dict) type: The response format for the model. Defaults to json_object.
         Returns:
             str: The model's response.
         """
@@ -127,13 +127,13 @@ class CommunicationProtocol:
         if not api_key:
             raise ValueError("OpenAI API key is missing.")
         client = OpenAI(base_url="https://api.deepseek.com/v1", api_key=api_key)
-        model_name = self.model.split("-")[1]
 
         try:
             completion = client.chat.completions.create(
                 model=self.default_open_ai_model,
                 messages=[{"role": "user", "content": f"{prompt}"}],
                 stream=False,
+                response_format=format,
             )
             return completion.choices[0].message.content
         except Exception as error:

@@ -1,106 +1,63 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime, Float
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy import Column, Integer, String, Date, DateTime, Float, Enum
+from sqlalchemy.orm import declarative_base
 from datetime import datetime
+from enum import Enum
 
 Base = declarative_base()
 
 
-class Team(Base):
-    __tablename__ = "teams"
-    team_id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True, nullable=False)
-    players = relationship(
-        "Player", back_populates="team", cascade="all, delete-orphan"
-    )
-
-    def __repr__(self):
-        return f"<Team(name={self.name})>"
-
-
-class Player(Base):
-    __tablename__ = "players"
-    player_id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    team_id = Column(Integer, ForeignKey("teams.team_id"), nullable=False)
-    team = relationship("Team", back_populates="players")
-
-    def __repr__(self):
-        return f"<Player(name={self.name})>"
-
-
-class Game(Base):
-    __tablename__ = "games"
-    game_id = Column(Integer, primary_key=True)
-    date = Column(Date, nullable=False)
-    home_team_id = Column(Integer, ForeignKey("teams.team_id"), nullable=False)
-    away_team_id = Column(Integer, ForeignKey("teams.team_id"), nullable=False)
-    winner_team_id = Column(Integer, ForeignKey("teams.team_id"), nullable=True)
-    home_team = relationship("Team", foreign_keys=[home_team_id])
-    away_team = relationship("Team", foreign_keys=[away_team_id])
-    winner_team = relationship("Team", foreign_keys=[winner_team_id])
-
-    def __repr__(self):
-        return f"<Game(id={self.game_id}, date={self.date})>"
-
-
-class PlayerPrediction(Base):
-    """
-    Model for an individual player's prediction in a game.
-    Each record represents a prediction for a specific player's stat(s)
-    in a specific game.
-    """
-
-    __tablename__ = "player_predictions"
-    prediction_id = Column(Integer, primary_key=True, autoincrement=True)
-    game_id = Column(Integer, ForeignKey("games.game_id"), nullable=False)
-    player_id = Column(Integer, ForeignKey("players.player_id"), nullable=False)
-    predicted_points = Column(Float, nullable=False)
-    predicted_assists = Column(Float, nullable=True)
-    predicted_rebounds = Column(Float, nullable=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-    value = Column(Float, nullable=True)
-    range_low = Column(Float, nullable=True)
-    range_high = Column(Float, nullable=True)
-    confidence = Column(Float, nullable=True)
-    explanation = Column(String, nullable=True)
-
-    game = relationship("Game")
-    player = relationship("Player")
-
-    def __repr__(self):
-        return (
-            f"<PlayerPrediction(prediction_id={self.prediction_id}, game_id={self.game_id}, "
-            f"player_id={self.player_id}, predicted_points={self.predicted_points})>"
-        )
+class PredictionType(Enum):
+    POINTS = "points"
+    REBOUNDS = "rebounds"
+    ASSISTS = "assists"
 
 
 class GamePrediction(Base):
     """
     Model for predicting the outcome of a game.
-    This prediction focuses on the overall game outcome (i.e. the winning team)
-    and includes win percentage estimates for both the home team and the opposing team.
+    Stores the prediction for a specific game with home and away teams.
     """
-
     __tablename__ = "game_predictions"
     prediction_id = Column(Integer, primary_key=True, autoincrement=True)
+    game_date = Column(Date, nullable=False)
+    home_team = Column(String, nullable=False)
+    away_team = Column(String, nullable=False)
+    predicted_winner = Column(String, nullable=False)
     home_team_win_percentage = Column(Float, nullable=False)
     opposing_team_win_percentage = Column(Float, nullable=False)
-    game_id = Column(Integer, ForeignKey("games.game_id"), nullable=False)
-    predicted_winner_team_id = Column(
-        Integer, ForeignKey("teams.team_id"), nullable=False
-    )
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-    game = relationship("Game")
-    predicted_winner_team = relationship(
-        "Team", foreign_keys=[predicted_winner_team_id]
-    )
 
     def __repr__(self):
         return (
-            f"<GamePrediction(prediction_id={self.prediction_id}, game_id={self.game_id}, "
-            f"predicted_winner_team_id={self.predicted_winner_team_id}, "
-            f"home_team_win_percentage={self.home_team_win_percentage}, "
-            f"opposing_team_win_percentage={self.opposing_team_win_percentage})>"
+            f"<GamePrediction(prediction_id={self.prediction_id}, "
+            f"game_date={self.game_date}, home_team={self.home_team}, "
+            f"away_team={self.away_team}, predicted_winner={self.predicted_winner})>"
+        )
+
+
+class PlayerPrediction(Base):
+    """
+    Model for an individual player's prediction in a game.
+    Stores predictions for a specific player's stats in a specific game.
+    """
+    __tablename__ = "player_predictions"
+    prediction_id = Column(Integer, primary_key=True, autoincrement=True)
+    game_date = Column(Date, nullable=False)
+    player_name = Column(String, nullable=False)
+    team = Column(String, nullable=False)
+    opposing_team = Column(String, nullable=False)
+    prediction_type = Column(String, nullable=False)
+    predicted_value = Column(Float, nullable=False)
+    range_low = Column(Float, nullable=True)
+    range_high = Column(Float, nullable=True)
+    confidence = Column(Float, nullable=True)
+    explanation = Column(String, nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    def __repr__(self):
+        return (
+            f"<PlayerPrediction(prediction_id={self.prediction_id}, "
+            f"game_date={self.game_date}, player_name={self.player_name}, "
+            f"team={self.team}, prediction_type={self.prediction_type.value}, "
+            f"predicted_value={self.predicted_value})>"
         )
