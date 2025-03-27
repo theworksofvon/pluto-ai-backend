@@ -17,7 +17,7 @@ downgrade:
 	alembic downgrade "$(r)"
 
 start:
-	poetry run uvicorn main:app --host 0.0.0.0 --port 10000
+	poetry run uvicorn main:app --host 0.0.0.0 --port 8080
 
 docker-build:
 	docker build -t pluto-ai .

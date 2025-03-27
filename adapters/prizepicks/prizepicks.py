@@ -2,6 +2,7 @@ import aiohttp
 from collections import defaultdict
 from typing import List, Dict, Set, Optional, Any
 from logger import logger
+import ssl
 
 
 class PrizePicksAdapter:
@@ -31,7 +32,9 @@ class PrizePicksAdapter:
         """
         url = f"{self.base_url}{endpoint}"
         try:
-            async with aiohttp.ClientSession(headers=self.headers) as session:
+            # Use system's certificate store
+            connector = aiohttp.TCPConnector(ssl=True)
+            async with aiohttp.ClientSession(headers=self.headers, connector=connector) as session:
                 async with session.get(url, params=params) as response:
                     response.raise_for_status()
                     data = await response.json()
@@ -44,6 +47,23 @@ class PrizePicksAdapter:
                             f"Number of projections in response: {len(data['data'])}"
                         )
                     return data
+        except aiohttp.ClientSSLError as e:
+            logger.error(f"SSL Error fetching data from {url}: {str(e)}")
+            # Fallback to no SSL verification for local development
+            try:
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                connector = aiohttp.TCPConnector(ssl=ssl_context)
+                async with aiohttp.ClientSession(headers=self.headers, connector=connector) as session:
+                    async with session.get(url, params=params) as response:
+                        response.raise_for_status()
+                        data = await response.json()
+                        logger.info(f"API Response status: {response.status}")
+                        return data
+            except Exception as e:
+                logger.error(f"Error in fallback connection: {str(e)}")
+                return None
         except aiohttp.ClientError as e:
             logger.error(f"Error fetching data from {url}: {str(e)}")
             return None

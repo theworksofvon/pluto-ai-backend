@@ -24,7 +24,7 @@ class GamePredictionRead(BaseModel):
     timestamp: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class PlayerPredictionCreate(BaseModel):
@@ -55,4 +55,4 @@ class PlayerPredictionRead(BaseModel):
     timestamp: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True

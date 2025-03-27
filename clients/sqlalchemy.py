@@ -43,3 +43,4 @@ class SQLAlchemyClient(Client):
         self.session_factory = sessionmaker(
             self.engine, class_=AsyncSession, expire_on_commit=False
         )
+        return self

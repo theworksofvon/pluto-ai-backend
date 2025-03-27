@@ -19,6 +19,7 @@ class Adapters:
         self.nba_analytics = NbaAnalyticsPipeline()
         self.auth = StaticAuthAdapter()
         self.prizepicks = PrizePicksAdapter()
+        self._uow = None
 
     @property
     def uow(self) -> AbstractUnitOfWork:

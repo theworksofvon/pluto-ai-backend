@@ -2,7 +2,6 @@ import uvicorn
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from connections import Connections
 from routers import router
 from agency import Agency

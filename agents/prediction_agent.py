@@ -3,6 +3,7 @@ from agency.agency_types import Tendencies
 from services.prediction import PredictionService
 from typing import Dict, Optional, Any
 from adapters import Adapters
+from adapters.db.abstract_uow import AbstractUnitOfWork
 from logger import logger
 from datetime import datetime
 from agents.helpers.prediction_helpers import (
@@ -20,6 +21,7 @@ class PredictionAgent(Agent):
 
     prediction_service: Optional[PredictionService] = None
     adapters: Optional[Dict] = None
+    uow: Optional[AbstractUnitOfWork] = None
 
     def __init__(self, **kwargs):
         super().__init__(
@@ -41,7 +43,9 @@ class PredictionAgent(Agent):
         )
         self.prediction_service = PredictionService()
         self.adapters: Adapters = Adapters()
-
+        self.uow = self.adapters.uow
+        
+        
     async def execute_task(self, **kwargs):
         """
         Main entry point for prediction tasks.
@@ -90,7 +94,7 @@ class PredictionAgent(Agent):
 
         try:
             prediction_data = parse_prediction_response(prediction_response)
-            async with self.adapters.uow as uow:
+            async with self.uow as uow:
                 logger.info(f"Saving player prediction for {player_name} vs {opposing_team}")
                 await uow.player_predictions.add(
                     PlayerPredictionCreate(
@@ -106,6 +110,8 @@ class PredictionAgent(Agent):
                         explanation=prediction_data["explanation"]
                     )
                 )
+                await uow.commit()
+                logger.info(f"Player prediction saved for {player_name} vs {opposing_team}")
         except Exception as e:
             logger.error(f"Error saving/parsing prediction: {e}")
             prediction_data = DEFAULT_PREDICTION.copy()

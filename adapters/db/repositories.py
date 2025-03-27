@@ -37,12 +37,6 @@ class PlayerPredictionRepository(AbstractRepository):
     async def query(self, **kwargs) -> List[PlayerPredictionRead]:
         raise NotImplementedError()
 
-    @abstractmethod
-    async def get_by_prediction_and_player(
-        self, prediction_id: int, player_id: int
-    ) -> Optional[PlayerPredictionRead]:
-        raise NotImplementedError()
-
 
 class GamePredictionRepository(AbstractRepository):
     @abstractmethod
