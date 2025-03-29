@@ -155,10 +155,15 @@ class DataProcessor:
                 logger.info(
                     f"Player {player_name} not found in dataset. Updating stats..."
                 )
-                await self.update_player_stats(players=[player_name])
-                player_stats = pd.read_csv(
-                    self.player_stats_file, parse_dates=["game_date_parsed"]
-                )
+                try:
+                    await self.update_player_stats(players=[player_name])
+                    player_stats = pd.read_csv(
+                        self.player_stats_file, parse_dates=["game_date_parsed"]
+                    )
+                except Exception as e:
+                    logger.error(f"Error updating player stats: {e}")
+                    raise e
+
             player_stats = player_stats[player_stats["player_name"] == player_name]
 
         if not self.odds_file.exists():
