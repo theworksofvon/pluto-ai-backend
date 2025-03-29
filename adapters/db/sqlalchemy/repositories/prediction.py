@@ -19,8 +19,8 @@ class SQLAlchemyPlayerPredictionRepository(PlayerPredictionRepository):
 
     async def add(self, prediction: PlayerPredictionCreate) -> PlayerPredictionRead:
         prediction_dict = prediction.dict()
-        prediction_dict['prediction_type'] = prediction_dict['prediction_type'].value
-        
+        prediction_dict["prediction_type"] = prediction_dict["prediction_type"].value
+
         prediction_instance = PlayerPrediction(**prediction_dict)
         self.session.add(prediction_instance)
         await self.session.flush()

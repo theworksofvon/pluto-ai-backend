@@ -44,8 +44,7 @@ class PredictionAgent(Agent):
         self.prediction_service = PredictionService()
         self.adapters: Adapters = Adapters()
         self.uow = self.adapters.uow
-        
-        
+
     async def execute_task(self, **kwargs):
         """
         Main entry point for prediction tasks.
@@ -95,7 +94,9 @@ class PredictionAgent(Agent):
         try:
             prediction_data = parse_prediction_response(prediction_response)
             async with self.uow as uow:
-                logger.info(f"Saving player prediction for {player_name} vs {opposing_team}")
+                logger.info(
+                    f"Saving player prediction for {player_name} vs {opposing_team}"
+                )
                 await uow.player_predictions.add(
                     PlayerPredictionCreate(
                         game_date=context.get("game_date", datetime.now().date()),
@@ -107,11 +108,13 @@ class PredictionAgent(Agent):
                         range_low=prediction_data["range_low"],
                         range_high=prediction_data["range_high"],
                         confidence=prediction_data["confidence"],
-                        explanation=prediction_data["explanation"]
+                        explanation=prediction_data["explanation"],
                     )
                 )
                 await uow.commit()
-                logger.info(f"Player prediction saved for {player_name} vs {opposing_team}")
+                logger.info(
+                    f"Player prediction saved for {player_name} vs {opposing_team}"
+                )
         except Exception as e:
             logger.error(f"Error saving/parsing prediction: {e}")
             prediction_data = DEFAULT_PREDICTION.copy()

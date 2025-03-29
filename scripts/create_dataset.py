@@ -1,3 +1,11 @@
+import os
+import sys
+from pathlib import Path
+
+# project root to Python path
+project_root = str(Path(__file__).parent.parent)
+sys.path.append(project_root)
+
 import pandas as pd
 from adapters import Adapters
 from datetime import datetime
@@ -31,6 +39,26 @@ def convert_game_date(date_str: str):
         return datetime.strptime(date_str, "%b %d, %Y")
     except:
         return pd.NaT  # If parsing fails
+
+
+def save_to_csv(df: pd.DataFrame, filename: str | None = None) -> str:
+    """
+    Save the DataFrame to a CSV file.
+    If no filename is provided, creates one with timestamp.
+    Returns the path to the saved file.
+    """
+    # Create data directory if it doesn't exist
+    os.makedirs("data", exist_ok=True)
+
+    # Generate filename if not provided
+    if not filename:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"pluto_dataset_{timestamp}.csv"
+
+    filepath = os.path.join("data", filename)
+    df.to_csv(filepath, index=False)
+    print(f"Dataset saved to: {filepath}")
+    return filepath
 
 
 async def create_pluto_dataset(
@@ -216,3 +244,17 @@ async def create_pluto_dataset(
     final_df.reset_index(drop=True, inplace=True)
 
     return final_df
+
+
+async def main():
+    players = ["LeBron James", "Stephen Curry", "Kevin Durant"]
+    seasons = ["2023-24", "2024-25"]
+
+    df = await create_pluto_dataset(players=players, seasons=seasons)
+    save_to_csv(df)
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())

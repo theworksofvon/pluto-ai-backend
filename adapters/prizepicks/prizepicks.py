@@ -34,7 +34,9 @@ class PrizePicksAdapter:
         try:
             # Use system's certificate store
             connector = aiohttp.TCPConnector(ssl=True)
-            async with aiohttp.ClientSession(headers=self.headers, connector=connector) as session:
+            async with aiohttp.ClientSession(
+                headers=self.headers, connector=connector
+            ) as session:
                 async with session.get(url, params=params) as response:
                     response.raise_for_status()
                     data = await response.json()
@@ -55,7 +57,9 @@ class PrizePicksAdapter:
                 ssl_context.check_hostname = False
                 ssl_context.verify_mode = ssl.CERT_NONE
                 connector = aiohttp.TCPConnector(ssl=ssl_context)
-                async with aiohttp.ClientSession(headers=self.headers, connector=connector) as session:
+                async with aiohttp.ClientSession(
+                    headers=self.headers, connector=connector
+                ) as session:
                     async with session.get(url, params=params) as response:
                         response.raise_for_status()
                         data = await response.json()

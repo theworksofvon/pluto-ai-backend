@@ -17,6 +17,7 @@ class GamePrediction(Base):
     Model for predicting the outcome of a game.
     Stores the prediction for a specific game with home and away teams.
     """
+
     __tablename__ = "game_predictions"
     prediction_id = Column(Integer, primary_key=True, autoincrement=True)
     game_date = Column(Date, nullable=False)
@@ -40,6 +41,7 @@ class PlayerPrediction(Base):
     Model for an individual player's prediction in a game.
     Stores predictions for a specific player's stats in a specific game.
     """
+
     __tablename__ = "player_predictions"
     prediction_id = Column(Integer, primary_key=True, autoincrement=True)
     game_date = Column(Date, nullable=False)
