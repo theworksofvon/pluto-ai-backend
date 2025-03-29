@@ -15,6 +15,7 @@ class Connections:
         cls.db = await sqlalchemy_client.connect(
             config.DATABASE_URI, echo=config.SQL_ECHO
         )
+        logger.info(f"Database connection created successfully: {cls.db}")
         logger.info("Connections created successfully")
         return cls
 

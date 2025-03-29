@@ -18,14 +18,18 @@ class SQLAlchemyPlayerPredictionRepository(PlayerPredictionRepository):
         self.session = session
 
     async def add(self, prediction: PlayerPredictionCreate) -> PlayerPredictionRead:
-        prediction_instance = PlayerPrediction(**prediction.dict())
+        prediction_dict = prediction.dict()
+        prediction_dict['prediction_type'] = prediction_dict['prediction_type'].value
+        
+        prediction_instance = PlayerPrediction(**prediction_dict)
         self.session.add(prediction_instance)
+        await self.session.flush()
         await self.session.refresh(prediction_instance)
         return PlayerPredictionRead.from_orm(prediction_instance)
 
-    async def get_by_id(self, prediction_id: int) -> Optional[PlayerPredictionRead]:
-        prediction = await self.session.get(PlayerPrediction, prediction_id)
-        return PlayerPredictionRead.from_orm(prediction) if prediction else None
+    # async def get_by_id(self, prediction_id: int) -> Optional[PlayerPredictionRead]:
+    #     prediction = await self.session.get(PlayerPrediction, prediction_id)
+    #     return PlayerPredictionRead.from_orm(prediction) if prediction else None
 
     async def query(self, **kwargs) -> List[PlayerPredictionRead]:
         query = self.session.query(PlayerPrediction)
@@ -45,6 +49,7 @@ class SQLAlchemyGamePredictionRepository(GamePredictionRepository):
     async def add(self, prediction: GamePredictionCreate) -> GamePredictionRead:
         prediction_instance = GamePrediction(**prediction.dict())
         self.session.add(prediction_instance)
+        await self.session.flush()
         await self.session.refresh(prediction_instance)
         return GamePredictionRead.from_orm(prediction_instance)
 

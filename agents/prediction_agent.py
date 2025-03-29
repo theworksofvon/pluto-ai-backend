@@ -2,13 +2,15 @@ from agency.agent import Agent
 from agency.agency_types import Tendencies
 from services.prediction import PredictionService
 from typing import Dict, Optional, Any
-import json
+from adapters import Adapters
+from adapters.db.abstract_uow import AbstractUnitOfWork
 from logger import logger
 from datetime import datetime
 from agents.helpers.prediction_helpers import (
     parse_prediction_response,
     DEFAULT_PREDICTION,
 )
+from schemas import PlayerPredictionCreate, PredictionType
 
 
 class PredictionAgent(Agent):
@@ -18,6 +20,8 @@ class PredictionAgent(Agent):
     """
 
     prediction_service: Optional[PredictionService] = None
+    adapters: Optional[Dict] = None
+    uow: Optional[AbstractUnitOfWork] = None
 
     def __init__(self, **kwargs):
         super().__init__(
@@ -38,7 +42,10 @@ class PredictionAgent(Agent):
             **kwargs,
         )
         self.prediction_service = PredictionService()
-
+        self.adapters: Adapters = Adapters()
+        self.uow = self.adapters.uow
+        
+        
     async def execute_task(self, **kwargs):
         """
         Main entry point for prediction tasks.
@@ -87,8 +94,26 @@ class PredictionAgent(Agent):
 
         try:
             prediction_data = parse_prediction_response(prediction_response)
+            async with self.uow as uow:
+                logger.info(f"Saving player prediction for {player_name} vs {opposing_team}")
+                await uow.player_predictions.add(
+                    PlayerPredictionCreate(
+                        game_date=context.get("game_date", datetime.now().date()),
+                        player_name=player_name,
+                        team=context.get("team", ""),
+                        opposing_team=opposing_team,
+                        prediction_type=PredictionType(prediction_type.lower()),
+                        predicted_value=prediction_data["value"],
+                        range_low=prediction_data["range_low"],
+                        range_high=prediction_data["range_high"],
+                        confidence=prediction_data["confidence"],
+                        explanation=prediction_data["explanation"]
+                    )
+                )
+                await uow.commit()
+                logger.info(f"Player prediction saved for {player_name} vs {opposing_team}")
         except Exception as e:
-            logger.error(f"Error parsing prediction response: {e}")
+            logger.error(f"Error saving/parsing prediction: {e}")
             prediction_data = DEFAULT_PREDICTION.copy()
 
         result = {

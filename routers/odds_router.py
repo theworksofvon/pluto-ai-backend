@@ -3,7 +3,9 @@ from typing import List
 from services.odds_service import OddsService, GameOdds
 from logger import logger
 
-router = APIRouter(prefix="/odds")
+router = APIRouter(
+    prefix="/odds", tags=["odds"], responses={404: {"description": "Not found"}}
+)
 
 
 def get_odds_service():
