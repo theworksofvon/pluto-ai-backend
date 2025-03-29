@@ -26,7 +26,7 @@ class CommunicationProtocol:
         """
         self.model = model.lower()
         self.config = config
-        self.default_open_ai_model = "deepseek-reasoner"
+        self.default_open_ai_model = "deepseek-chat"
         self.personality = personality  # Personality of the agent
         self.history: List[Dict[str, str]] = (
             []
@@ -113,7 +113,7 @@ class CommunicationProtocol:
                 print(error_message)
                 raise CommunicationsProtocolError(error_message, status_code=400)
 
-    async def _send_to_openai(self, prompt: str, format: Optional[Dict] = {"type": "json_object"}) -> str:
+    async def _send_to_openai(self, prompt: str, format: Optional[Dict] = None) -> str:
         """
         Handle communication with a remote OpenAI model.
 
@@ -133,7 +133,6 @@ class CommunicationProtocol:
                 model=self.default_open_ai_model,
                 messages=[{"role": "user", "content": f"{prompt}"}],
                 stream=False,
-                response_format=format,
             )
             return completion.choices[0].message.content
         except Exception as error:
