@@ -50,4 +50,3 @@ class GamePredictionRepository(AbstractRepository):
     @abstractmethod
     async def query(self, **kwargs) -> List[GamePredictionRead]:
         raise NotImplementedError()
-
