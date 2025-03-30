@@ -1,12 +1,13 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 from .data_pipeline import DataProcessor
 from logger import logger
 import os
 import joblib
 from adapters import Adapters
+from connections import Connections
 
 
 class PredictionService:
@@ -621,3 +622,52 @@ class PredictionService:
         """
         # TODO: Implement the assists model prediction
         return None
+
+    async def get_player_prediction(
+        self,
+        player_name: str,
+        prediction_type: str,
+        opposing_team: Optional[str] = None,
+        game_date: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Get the most recent player prediction for the player.
+
+        Args:
+            player_name: The name of the player
+            prediction_type: The type of prediction (e.g., 'points', 'rebounds', etc.)
+            opposing_team: Optional opposing team to filter predictions
+            game_date: Optional game date to filter predictions
+
+        Returns:
+            Dict containing the most recent prediction data or None if not found
+        """
+        try:
+            # Build the query
+            query = Connections.supabase.table("player_predictions").select("*")
+
+            # Apply filters
+            query = query.eq("player_name", player_name)
+            query = query.eq("prediction_type", prediction_type)
+
+            if opposing_team:
+                query = query.eq("opposing_team", opposing_team)
+
+            if game_date:
+                query = query.eq("game_date", game_date)
+
+            query = query.order("timestamp", desc=True).limit(1)
+
+            result = query.execute()
+
+            if result.data and len(result.data) > 0:
+                return result.data[0]
+
+            logger.warning(
+                f"No prediction found for player {player_name} with type {prediction_type}"
+            )
+            return None
+
+        except Exception as e:
+            logger.error(f"Error fetching player prediction: {str(e)}")
+            return None
