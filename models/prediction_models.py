@@ -8,6 +8,7 @@ class PredictionRequest(BaseModel):
     opposing_team: str
     prediction_type: Optional[str] = "points"
     game_id: Optional[str] = None
+    team: Optional[str] = None
 
 
 class PredictionValue(BaseModel):

@@ -38,7 +38,7 @@ def convert_game_date(date_str: str | pd.Timestamp):
     """
     if isinstance(date_str, pd.Timestamp):
         return date_str
-        
+
     try:
         return datetime.strptime(date_str, "%b %d, %Y")
     except:

@@ -116,3 +116,39 @@ class NbaAnalyticsInterface(ABC):
             Dict: Dictionary containing today's game data.
         """
         pass
+
+    @abstractmethod
+    async def get_todays_upcoming_games(self) -> List[Dict]:
+        """
+        Get today's upcoming games.
+
+        Returns:
+            List[Dict]: List of dicts containing game info
+        """
+        pass
+
+    @abstractmethod
+    async def get_starting_lineup(self, team_name: str) -> List[Dict]:
+        """
+        Get the starting lineup for a team.
+
+        Args:
+            team_name (str): Full name of the team (e.g., 'Los Angeles Lakers').
+
+        Returns:
+            List[Dict]: List of dicts containing starting lineup info
+        """
+        pass
+    
+    @abstractmethod
+    async def get_player_image(self, player_id: str) -> str:
+        """
+        Get the image URL for a player by their ID.
+
+        Args:
+            player_id (str): NBA player ID.
+
+        Returns:
+            str: Image URL for the player.
+        """
+        pass

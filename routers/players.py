@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Body
+from adapters import Adapters
 from services.data_pipeline import DataProcessor
 
 router = APIRouter(prefix="/players", tags=["players"])
@@ -8,6 +9,10 @@ def get_data_pipeline():
     return DataProcessor()
 
 
+def get_adapters():
+    return Adapters()
+
+
 @router.post("/update-player-stats")
 async def update_player_stats(
     players: list[str] = Body(...),
@@ -15,3 +20,11 @@ async def update_player_stats(
 ):
     await data_pipeline.update_player_stats(players=players, current=False)
     return {"message": "Player stats updated"}
+
+
+@router.get("/get-player-image")
+async def get_player_image(
+    player_name: str = Body(...),
+    adapters: Adapters = Depends(get_adapters),
+):
+    return await adapters.nba_analytics.get_player_image(player_name=player_name)

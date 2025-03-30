@@ -53,6 +53,7 @@ async def predict_player_performance(
             player_name=data.player_name,
             opposing_team=data.opposing_team,
             prediction_type=prediction_type,
+            team=data.team,
             game_id=data.game_id,
         )
 

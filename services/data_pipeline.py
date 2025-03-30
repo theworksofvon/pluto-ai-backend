@@ -33,7 +33,7 @@ class DataProcessor:
             DataFrame: The updated dataset or None if no updates were made.
         """
         last_update_date = self._get_last_update_date(self.player_stats_file)
-        
+
         logger.info(f"Last update date: {last_update_date}")
 
         active_players = (
@@ -57,9 +57,7 @@ class DataProcessor:
                 players=active_players, seasons=[current_season]
             )
         else:
-            new_data = await create_pluto_dataset(
-                players=active_players
-            )
+            new_data = await create_pluto_dataset(players=active_players)
 
         if last_update_date is not None and current:
             new_data = new_data[new_data["game_date_parsed"] > last_update_date]
@@ -71,17 +69,17 @@ class DataProcessor:
                 self.player_stats_file, parse_dates=["game_date_parsed"]
             )
             updated_data = pd.concat([existing_data, new_data], ignore_index=True)
-            
+
             duplicate_columns = ["player_name", "game_date_parsed"]
             if "GAME_ID" in updated_data.columns:
                 duplicate_columns.append("GAME_ID")
-                
+
             updated_data.drop_duplicates(
                 subset=duplicate_columns,
                 keep="last",
                 inplace=True,
             )
-            
+
             updated_data.to_csv(self.player_stats_file, index=False)
             logger.info(
                 f"Added {len(new_data)} new player stat records to main dataset"
