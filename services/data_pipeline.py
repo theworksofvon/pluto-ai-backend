@@ -21,7 +21,7 @@ class DataProcessor:
         await asyncio.gather(self.update_player_stats(), self.update_vegas_odds())
 
     async def update_player_stats(
-        self, players: Optional[List[str]] = None
+        self, players: Optional[List[str]] = None, current: Optional[bool] = True
     ) -> Optional[pd.DataFrame]:
         """
         Update the player stats dataset with new data since the last update.
@@ -33,6 +33,8 @@ class DataProcessor:
             DataFrame: The updated dataset or None if no updates were made.
         """
         last_update_date = self._get_last_update_date(self.player_stats_file)
+        
+        logger.info(f"Last update date: {last_update_date}")
 
         active_players = (
             players
@@ -50,12 +52,19 @@ class DataProcessor:
         logger.info(
             f"Updating player stats from {last_update_date} to present for {len(active_players)} players"
         )
-        new_data = await create_pluto_dataset(
-            players=active_players, seasons=[current_season]
-        )
+        if current:
+            new_data = await create_pluto_dataset(
+                players=active_players, seasons=[current_season]
+            )
+        else:
+            new_data = await create_pluto_dataset(
+                players=active_players
+            )
 
-        if last_update_date is not None:
+        if last_update_date is not None and current:
             new_data = new_data[new_data["game_date_parsed"] > last_update_date]
+        else:
+            new_data = new_data
 
         if self.player_stats_file.exists() and not new_data.empty:
             existing_data = pd.read_csv(

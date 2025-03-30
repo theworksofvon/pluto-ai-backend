@@ -126,8 +126,8 @@ class PredictionService:
         )
 
         if points_model_prediction:
-            points_model_prediction = self._calculate_points_model_prediction(
-                points_model_prediction
+            points_model_prediction = self._get_model_prediction(
+                player_stats, prediction_type
             )
 
         return {

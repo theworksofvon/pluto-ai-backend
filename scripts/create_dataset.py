@@ -30,11 +30,15 @@ def parse_matchup(matchup_str: str):
     return home_away_flag, opponent
 
 
-def convert_game_date(date_str: str):
+def convert_game_date(date_str: str | pd.Timestamp):
     """
     Convert a date string like 'FEB 06, 2025' to a Python datetime.
     We'll attempt the format '%b %d, %Y'.
+    If input is already a Timestamp, return it as is.
     """
+    if isinstance(date_str, pd.Timestamp):
+        return date_str
+        
     try:
         return datetime.strptime(date_str, "%b %d, %Y")
     except:
@@ -62,7 +66,7 @@ def save_to_csv(df: pd.DataFrame, filename: str | None = None) -> str:
 
 
 async def create_pluto_dataset(
-    players: list[str] | None = None, seasons: list[str] | None = None
+    players: list[str] | None = None, seasons: list[str] | None = ["2023-24", "2024-25"]
 ) -> pd.DataFrame:
     """
     Creates a dataset of (optionally) multiple seasons of player game logs,

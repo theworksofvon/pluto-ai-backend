@@ -13,5 +13,5 @@ async def update_player_stats(
     players: list[str] = Body(...),
     data_pipeline: DataProcessor = Depends(get_data_pipeline),
 ):
-    await data_pipeline.update_player_stats(players=players)
+    await data_pipeline.update_player_stats(players=players, current=False)
     return {"message": "Player stats updated"}
