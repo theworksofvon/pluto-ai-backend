@@ -1,6 +1,7 @@
 from typing import Optional
 from logger import logger
 
+
 def get_team_name_from_id(team_id: str) -> Optional[str]:
     """
     Convert a team ID to its team name.
@@ -36,7 +37,7 @@ def get_team_name_from_id(team_id: str) -> Optional[str]:
             "1610612759": "San Antonio Spurs",
             "1610612761": "Toronto Raptors",
             "1610612762": "Utah Jazz",
-            "1610612764": "Washington Wizards"
+            "1610612764": "Washington Wizards",
         }
         logger.info(f"Converting team ID: {team_id}")
         team_name = team_mapping.get(team_id)
@@ -44,4 +45,4 @@ def get_team_name_from_id(team_id: str) -> Optional[str]:
         return team_name
     except Exception as e:
         logger.error(f"Error converting team ID to name: {e}")
-        return None 
+        return None

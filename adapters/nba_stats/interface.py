@@ -139,7 +139,7 @@ class NbaAnalyticsInterface(ABC):
             List[Dict]: List of dicts containing starting lineup info
         """
         pass
-    
+
     @abstractmethod
     async def get_player_image(self, player_id: str) -> str:
         """

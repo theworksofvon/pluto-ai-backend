@@ -8,7 +8,7 @@ from nba_api.stats.endpoints import (
     playergamelog,
     playbyplayv2,
     scoreboardv2,
-    commonteamroster
+    commonteamroster,
 )
 from nba_api.live.nba.endpoints import scoreboard
 from datetime import datetime
@@ -190,14 +190,17 @@ class NbaAnalyticsPipeline(NbaAnalyticsInterface):
         scoreboard = scoreboardv2.ScoreboardV2(game_date=today)
         games = scoreboard.get_normalized_dict()["GameHeader"]
         logger.info(f"Games: {games}")
-        
+
         # Return just the fields we need
-        return [{
-            "HOME_TEAM_ID": game["HOME_TEAM_ID"],
-            "VISITOR_TEAM_ID": game["VISITOR_TEAM_ID"],
-            "GAME_STATUS_TEXT": game["GAME_STATUS_TEXT"],
-            "GAME_ID": game["GAME_ID"]
-        } for game in games]
+        return [
+            {
+                "HOME_TEAM_ID": game["HOME_TEAM_ID"],
+                "VISITOR_TEAM_ID": game["VISITOR_TEAM_ID"],
+                "GAME_STATUS_TEXT": game["GAME_STATUS_TEXT"],
+                "GAME_ID": game["GAME_ID"],
+            }
+            for game in games
+        ]
 
     async def get_starting_lineup(self, team_name: str):
         """
@@ -240,7 +243,7 @@ class NbaAnalyticsPipeline(NbaAnalyticsInterface):
         ]
 
         return lineup
-    
+
     async def get_player_image(self, player_name: str) -> str:
         """
         Get the image URL for a player by their name.
