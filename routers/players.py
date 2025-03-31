@@ -14,7 +14,7 @@ def get_data_pipeline():
 
 
 def get_player_service():
-    return PlayerService()
+    return PlayerService(Adapters())
 
 
 def get_adapters():

@@ -15,7 +15,7 @@ from datetime import datetime
 from logger import logger
 
 import pandas as pd
-from typing import List, Dict
+from typing import List, Dict, Any
 from .interface import NbaAnalyticsInterface
 
 
@@ -257,3 +257,33 @@ class NbaAnalyticsPipeline(NbaAnalyticsInterface):
         player_dict = players.find_players_by_full_name(player_name)
         player_id = player_dict[0]["id"]
         return f"https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/{player_id}.png"
+
+    async def get_team_info(self, team_name: str) -> Dict[str, Any]:
+        """
+        Get team information by team name.
+
+        Args:
+            team_name (str): Full name of the team (e.g., 'Los Angeles Lakers').
+
+        Returns:
+            Dict[str, Any]: Dictionary containing team information including logo URL.
+        """
+        nba_teams = self.get_teams()
+        team = next(
+            (
+                team
+                for team in nba_teams
+                if team["full_name"].lower() == team_name.lower()
+            ),
+            None,
+        )
+
+        if team:
+            team_id = team["id"]
+            return {
+                "id": team_id,
+                "name": team["full_name"],
+                "abbreviation": team["abbreviation"],
+                "logo": f"https://cdn.nba.com/logos/nba/{team_id}/primary/L/logo.svg",
+            }
+        return None
