@@ -56,16 +56,17 @@ class PredictionAgent(Agent):
         """
         logger.info("Prediction agent is ready for player predictions")
 
-        # Schedule the prediction task to run every 2 minutes
+        # Schedule the prediction task to run every day at 9:30 AM
         self.scheduler.add_interval_job(
             func=self._run_daily_predictions,
-            hours=0.033,  # 2 minutes = 0.033 hours
-            job_id="test_predictions",
+            hours=9,
+            minutes=30,
+            job_id="daily_predictions",
         )
 
         # Start the scheduler
         self.scheduler.start()
-        logger.info("Scheduled predictions to run every 2 minutes")
+        logger.info("Scheduled predictions to run every day at 9:30 AM")
 
     async def _run_daily_predictions(self):
         """
