@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Body, Path, Query
 from adapters import Adapters
 from services.data_pipeline import DataProcessor
-from services.prediction import PredictionService
+from services.player_service import PlayerService
 from typing import Optional
 from datetime import datetime
 
@@ -13,8 +13,8 @@ def get_data_pipeline():
     return DataProcessor()
 
 
-def get_prediction_service():
-    return PredictionService()
+def get_player_service():
+    return PlayerService()
 
 
 def get_adapters():
@@ -50,7 +50,7 @@ async def get_player_predictions(
     prediction_type: Optional[str] = Query(
         "points", description="The type of prediction to get"
     ),
-    service: PredictionService = Depends(get_prediction_service),
+    service: PlayerService = Depends(get_player_service),
 ):
     """
     Get player predictions either by player names or by game date.
