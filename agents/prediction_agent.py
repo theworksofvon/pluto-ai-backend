@@ -1,15 +1,17 @@
 from agency.agent import Agent
 from agency.agency_types import Tendencies
 from services.prediction import PredictionService
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List, Tuple
 from adapters import Adapters
 from adapters.db.abstract_uow import AbstractUnitOfWork
+from adapters.scheduler import AbstractScheduler
 from logger import logger
-from datetime import datetime
+from datetime import datetime, time
 from agents.helpers.prediction_helpers import (
     parse_prediction_response,
     DEFAULT_PREDICTION,
 )
+from agents.helpers.team_helpers import get_team_name_from_id
 from schemas import PlayerPredictionCreate, PredictionType
 
 
@@ -22,6 +24,7 @@ class PredictionAgent(Agent):
     prediction_service: Optional[PredictionService] = None
     adapters: Optional[Dict] = None
     uow: Optional[AbstractUnitOfWork] = None
+    scheduler: Optional[AbstractScheduler] = None
 
     def __init__(self, **kwargs):
         super().__init__(
@@ -44,25 +47,110 @@ class PredictionAgent(Agent):
         self.prediction_service = PredictionService()
         self.adapters: Adapters = Adapters()
         self.uow = self.adapters.uow
+        self.scheduler = self.adapters.scheduler
 
     async def execute_task(self, **kwargs):
         """
         Main entry point for prediction tasks.
-        This is automatically called when the agent runs.
+        Sets up scheduler to run predictions every 2 minutes for testing.
         """
         logger.info("Prediction agent is ready for player predictions")
 
-        # TODO:
-        # 1. Identify upcoming games
-        # 2. Get a list of key players
-        # 3. Make predictions for each player
-        # 4. Store or publish these predictions
+        # Schedule the prediction task to run every day at 9:30 AM
+        self.scheduler.add_interval_job(
+            func=self._run_daily_predictions,
+            hours=9,
+            minutes=30,
+            job_id="daily_predictions",
+        )
+
+        # Start the scheduler
+        self.scheduler.start()
+        logger.info("Scheduled predictions to run every day at 9:30 AM")
+
+    async def _run_daily_predictions(self):
+        """
+        Run predictions for today's games and key players.
+        """
+        try:
+            today_games = await self.adapters.nba_analytics.get_todays_upcoming_games()
+            if not today_games:
+                logger.info("No games scheduled for today")
+                return
+            game_players = await self._get_game_players(today_games)
+            if not game_players:
+                logger.info("No key players identified for today's games")
+                return
+
+            for player, team, opposing_team in game_players:
+                try:
+                    prediction = await self.predict_player_performance(
+                        player_name=player,
+                        team=team,
+                        opposing_team=opposing_team,
+                        prediction_type="points",
+                    )
+                    logger.info(f"Prediction completed for {player}: {prediction}")
+
+                except Exception as e:
+                    logger.error(f"Error predicting for player {player}: {e}")
+                    continue
+
+        except Exception as e:
+            logger.error(f"Error in daily predictions: {e}")
+
+    async def _get_game_players(self, games: List[Dict]) -> List[Tuple[str, str, str]]:
+        """
+        Get all players from today's games.
+        Returns a list of tuples containing (player_name, team, opposing_team).
+        """
+        players = []
+        try:
+            for game in games:
+                home_team_id = str(game.get("HOME_TEAM_ID"))
+                away_team_id = str(game.get("VISITOR_TEAM_ID"))
+
+                if not home_team_id or not away_team_id:
+                    logger.warning(f"Skipping game due to missing team IDs: {game}")
+                    continue
+
+                # Convert team IDs to names
+                home_team_name = get_team_name_from_id(home_team_id)
+                away_team_name = get_team_name_from_id(away_team_id)
+
+                if not home_team_name or not away_team_name:
+                    logger.warning(f"Skipping game due to missing team names: {game}")
+                    continue
+
+                # Get players from both teams
+                home_players = await self.adapters.nba_analytics.get_starting_lineup(
+                    home_team_name
+                )
+                away_players = await self.adapters.nba_analytics.get_starting_lineup(
+                    away_team_name
+                )
+
+                for player in home_players:
+                    players.append(
+                        (player.get("player_name"), home_team_name, away_team_name)
+                    )
+
+                for player in away_players:
+                    players.append(
+                        (player.get("player_name"), away_team_name, home_team_name)
+                    )
+
+            return players
+        except Exception as e:
+            logger.error(f"Error getting players: {e}")
+            return []
 
     async def predict_player_performance(
         self,
         player_name: str,
         opposing_team: str,
         prediction_type: str = "points",
+        team: Optional[str] = None,
         game_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
@@ -101,7 +189,7 @@ class PredictionAgent(Agent):
                     PlayerPredictionCreate(
                         game_date=context.get("game_date", datetime.now().date()),
                         player_name=player_name,
-                        team=context.get("team", ""),
+                        team=team or "",
                         opposing_team=opposing_team,
                         prediction_type=PredictionType(prediction_type.lower()),
                         predicted_value=prediction_data["value"],

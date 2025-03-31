@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import pandas as pd
-from typing import List, Dict
+from typing import List, Dict, Any
 
 
 class NbaAnalyticsInterface(ABC):
@@ -114,5 +114,54 @@ class NbaAnalyticsInterface(ABC):
 
         Returns:
             Dict: Dictionary containing today's game data.
+        """
+        pass
+
+    @abstractmethod
+    async def get_todays_upcoming_games(self) -> List[Dict]:
+        """
+        Get today's upcoming games.
+
+        Returns:
+            List[Dict]: List of dicts containing game info
+        """
+        pass
+
+    @abstractmethod
+    async def get_starting_lineup(self, team_name: str) -> List[Dict]:
+        """
+        Get the starting lineup for a team.
+
+        Args:
+            team_name (str): Full name of the team (e.g., 'Los Angeles Lakers').
+
+        Returns:
+            List[Dict]: List of dicts containing starting lineup info
+        """
+        pass
+
+    @abstractmethod
+    async def get_player_image(self, player_id: str) -> str:
+        """
+        Get the image URL for a player by their ID.
+
+        Args:
+            player_id (str): NBA player ID.
+
+        Returns:
+            str: Image URL for the player.
+        """
+        pass
+
+    @abstractmethod
+    async def get_team_info(self, team_name: str) -> Dict[str, Any]:
+        """
+        Get team information by team name.
+
+        Args:
+            team_name (str): Full name of the team (e.g., 'Los Angeles Lakers').
+
+        Returns:
+            Dict[str, Any]: Dictionary containing team information including logo URL.
         """
         pass

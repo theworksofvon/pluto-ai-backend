@@ -1,12 +1,13 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 from .data_pipeline import DataProcessor
 from logger import logger
 import os
 import joblib
 from adapters import Adapters
+from connections import Connections
 
 
 class PredictionService:
@@ -126,8 +127,8 @@ class PredictionService:
         )
 
         if points_model_prediction:
-            points_model_prediction = self._calculate_points_model_prediction(
-                points_model_prediction
+            points_model_prediction = self._get_model_prediction(
+                player_stats, prediction_type
             )
 
         return {

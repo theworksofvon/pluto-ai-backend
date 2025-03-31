@@ -7,12 +7,15 @@ from nba_api.stats.endpoints import (
     teamgamelog,
     playergamelog,
     playbyplayv2,
+    scoreboardv2,
+    commonteamroster,
 )
 from nba_api.live.nba.endpoints import scoreboard
-
+from datetime import datetime
+from logger import logger
 
 import pandas as pd
-from typing import List, Dict
+from typing import List, Dict, Any
 from .interface import NbaAnalyticsInterface
 
 
@@ -163,5 +166,124 @@ class NbaAnalyticsPipeline(NbaAnalyticsInterface):
     # ------------------------------
 
     def get_todays_game_scoreboard(self):
+        """
+        Get today's game scoreboard.
+
+        Returns:
+            Dict: Dictionary containing today's game data.
+        """
         games = scoreboard.ScoreBoard()
         return games.get_dict()
+
+    async def get_todays_upcoming_games(self):
+        """
+        Get today's upcoming games.
+
+        Returns:
+            List[Dict]: List of dicts containing game info with fields:
+                - HOME_TEAM_ID: ID of the home team
+                - VISITOR_TEAM_ID: ID of the visiting team
+                - GAME_STATUS_TEXT: Game status/time
+                - GAME_ID: Unique game identifier
+        """
+        today = datetime.today().strftime("%m/%d/%Y")
+        scoreboard = scoreboardv2.ScoreboardV2(game_date=today)
+        games = scoreboard.get_normalized_dict()["GameHeader"]
+        logger.info(f"Games: {games}")
+
+        # Return just the fields we need
+        return [
+            {
+                "HOME_TEAM_ID": game["HOME_TEAM_ID"],
+                "VISITOR_TEAM_ID": game["VISITOR_TEAM_ID"],
+                "GAME_STATUS_TEXT": game["GAME_STATUS_TEXT"],
+                "GAME_ID": game["GAME_ID"],
+            }
+            for game in games
+        ]
+
+    async def get_starting_lineup(self, team_name: str):
+        """
+        Get the starting lineup for a team.
+
+        Args:
+            team_name (str): Full name of the team (e.g., 'Los Angeles Lakers').
+
+        Returns:
+            List[Dict]: List of dicts containing starting lineup info
+        """
+        nba_teams = self.get_teams()
+        logger.info(f"NBA Teams in get_starting_lineup: {nba_teams}")
+        team = next(
+            (
+                team
+                for team in nba_teams
+                if team["full_name"].lower() == team_name.lower()
+            ),
+            None,
+        )
+        logger.info(f"Team in get_starting_lineup: {team}")
+
+        if not team:
+            raise ValueError(f"Team '{team_name}' not found.")
+
+        roster = commonteamroster.CommonTeamRoster(team_id=team["id"])
+        logger.info(f"Roster in get_starting_lineup: {roster}")
+        players = roster.get_normalized_dict()["CommonTeamRoster"]
+        logger.info(f"Players in get_starting_lineup: {players}")
+        starters = [player for player in players if player["POSITION"] != ""][:5]
+        logger.info(f"Starters in get_starting_lineup: {starters}")
+        lineup = [
+            {
+                "player_name": player["PLAYER"],
+                "position": player["POSITION"],
+                "jersey_number": player["NUM"],
+            }
+            for player in starters
+        ]
+
+        return lineup
+
+    async def get_player_image(self, player_name: str) -> str:
+        """
+        Get the image URL for a player by their name.
+
+        Args:
+            player_name (str): NBA player name.
+
+        Returns:
+            str: Image URL for the player.
+        """
+        player_dict = players.find_players_by_full_name(player_name)
+        player_id = player_dict[0]["id"]
+        return f"https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/{player_id}.png"
+
+    async def get_team_info(self, team_name: str) -> Dict[str, Any]:
+        """
+        Get team information by team name.
+
+        Args:
+            team_name (str): Full name of the team (e.g., 'Los Angeles Lakers').
+
+        Returns:
+            Dict[str, Any]: Dictionary containing team information including logo URL.
+        """
+        nba_teams = self.get_teams()
+        team = next(
+            (
+                team
+                for team in nba_teams
+                if team["full_name"].lower() == team_name.lower()
+            ),
+            None,
+        )
+
+        if team:
+            team_id = team["id"]
+            return {
+                "id": team_id,
+                "name": team["full_name"],
+                "abbreviation": team["abbreviation"],
+                "logo": f"https://cdn.nba.com/logos/nba/{team_id}/primary/L/logo.svg",
+            }
+        return None

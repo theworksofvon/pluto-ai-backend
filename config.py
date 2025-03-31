@@ -39,6 +39,16 @@ class Config(BaseSettings):
     )
     SQL_ECHO: bool = False
 
+    # Supabase
+    SUPABASE_URL: str = Field(
+        description="Supabase project URL",
+        default="",
+    )
+    SUPABASE_KEY: str = Field(
+        description="Supabase project API key",
+        default="",
+    )
+
     OLLAMA_API_URL: str = Field(
         description="Ollama API URL",
         default="",

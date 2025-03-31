@@ -6,13 +6,16 @@ from .auth.interface import AuthInterface
 from .auth.auth import StaticAuthAdapter
 from connections import Connections
 from .prizepicks import PrizePicksAdapter
+from .scheduler import AbstractScheduler, APSchedulerAdapter
 
 
 class Adapters:
     vegas_odds: VegasOddsInterface
     nba_analytics: NbaAnalyticsInterface
-    _uow: AbstractUnitOfWork
+    _uow: AbstractUnitOfWork | None
     auth: AuthInterface
+    prizepicks: PrizePicksAdapter
+    scheduler: AbstractScheduler
 
     def __init__(self):
         self.vegas_odds = VegasOddsPipeline()
@@ -20,6 +23,7 @@ class Adapters:
         self.auth = StaticAuthAdapter()
         self.prizepicks = PrizePicksAdapter()
         self._uow = None
+        self.scheduler = APSchedulerAdapter()
 
     @property
     def uow(self) -> AbstractUnitOfWork:
