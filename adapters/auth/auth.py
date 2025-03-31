@@ -16,6 +16,7 @@ class StaticAuthAdapter(AuthInterface):
         self.static_token = config.ACCESS_TOKEN
         self.jwt_secret = config.JWT_SUPABASE_SECRET
         self.jwt_algorithm = algorithm
+        self.expected_audience = "authenticated"
 
     def verify_static_token(self, bearer_token: str | None = None) -> None:
         """
@@ -42,22 +43,38 @@ class StaticAuthAdapter(AuthInterface):
 
     async def authenticate_user(self, token: str) -> bool:
         """
-        Authenticate a user with a token.
+        Authenticate a user with a Supabase JWT token.
+        Requirements:
+        1. Token must be validly signed with Supabase's JWT secret
+        2. Token must have "authenticated" as the audience claim
+        3. Token must not be expired
         """
         try:
-            logger.info(f"Authenticating user with token...")
+            logger.info(f"Authenticating user with Supabase token...")
             token = self._extract_token(token)
-            logger.info(f"Decoding token....")
-            jwt.decode(token, self.jwt_secret, algorithms=[self.jwt_algorithm])
-            logger.info(f"Token decoded...")
+            
+            jwt.decode(
+                token, 
+                self.jwt_secret, 
+                algorithms=[self.jwt_algorithm],
+                audience=self.expected_audience,
+                options={
+                    "verify_signature": True, 
+                    "verify_aud": True,       
+                    "verify_iat": True,       
+                    "verify_nbf": True        
+                }
+            )
+            logger.info(f"Token validated successfully...")
             return True
-        except JWTError:
-            logger.info(f"Token not decoded...")
+        except JWTError as e:
+            logger.info(f"Token validation failed: {e}")
             return False
         except Exception as e:
             logger.error(f"Error authenticating user: {e}")
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+                status_code=status.HTTP_401_UNAUTHORIZED, 
+                detail="Invalid or expired token"
             )
 
     async def decode_access_token(self, token: str) -> dict | None:
@@ -66,7 +83,12 @@ class StaticAuthAdapter(AuthInterface):
         """
         try:
             token = self._extract_token(token)
-            return jwt.decode(token, self.jwt_secret, algorithms=[self.jwt_algorithm])
+            return jwt.decode(
+                token, 
+                self.jwt_secret, 
+                algorithms=[self.jwt_algorithm],
+                audience=self.expected_audience
+            )
         except JWTError:
             return None
 
