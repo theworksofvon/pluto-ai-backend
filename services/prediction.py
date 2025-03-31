@@ -412,18 +412,26 @@ class PredictionService:
 
         history = []
         for _, game in opponent_games.iterrows():
+            game_date = game["game_date_parsed"]
+            if isinstance(game_date, pd.Timestamp):
+                game_date = game_date.strftime("%Y-%m-%d")
+            elif isinstance(game_date, str):
+                game_date = datetime.strptime(game_date, "%Y-%m-%d").strftime("%Y-%m-%d")
+            
             history.append(
                 {
-                    "date": (
-                        datetime.strptime(game["game_date_parsed"], "%Y-%m-%d")
-                        if "game_date_parsed" in game
-                        else None
-                    ),
+                    "date": game_date,
                     "value": game[stat_column],
                     "minutes": game.get("MIN", None),
                     "result": game.get("W/L", None),
                 }
             )
+
+        last_game_date = opponent_games.iloc[0]["game_date_parsed"]
+        if isinstance(last_game_date, pd.Timestamp):
+            last_game_date = last_game_date.strftime("%Y-%m-%d")
+        elif isinstance(last_game_date, str):
+            last_game_date = datetime.strptime(last_game_date, "%Y-%m-%d").strftime("%Y-%m-%d")
 
         return {
             "games_vs_opponent": len(opponent_games),
@@ -432,14 +440,7 @@ class PredictionService:
                 opponent_games[stat_column].max() if not opponent_games.empty else None
             ),
             "last_game_vs_opponent": opponent_values[0] if opponent_values else None,
-            "last_game_date": (
-                datetime.strptime(
-                    opponent_games.iloc[0]["game_date_parsed"], "%Y-%m-%d"
-                )
-                if not opponent_games.empty
-                and "game_date_parsed" in opponent_games.iloc[0]
-                else None
-            ),
+            "last_game_date": last_game_date,
             "comparison_to_season_avg": (
                 (opponent_avg / season_avg - 1) * 100 if season_avg else None
             ),  # percentage difference
