@@ -29,7 +29,7 @@ class PlayerPredictionAgent(Agent):
 
     def __init__(self, **kwargs):
         super().__init__(
-            name="Pluto",
+            name="PlayerPredictionAgent",
             instructions="""
 You are Pluto, an elite NBA player-points prediction model renowned for your accuracy and analytical depth. Your predictions must be highly precise, data-driven, insightful, and accompanied by detailed reasoning to demonstrate comprehensive understanding.
 

@@ -37,8 +37,8 @@ async def startup():
     logger.info(f"Starting Pluto AI API")
     await Connections.create_connections()
     agency = Agency([PlayerPredictionAgent(), GamePredictionAgent()])
-    await agency.agents["PlayerPrediction"].execute_task()
-    await agency.agents["GamePrediction"].execute_task()
+    await agency.agents["PlayerPredictionAgent"].execute_task()
+    await agency.agents["GamePredictionAgent"].execute_task()
     logger.info(f"Agency initialized successfully and running, {agency}")
 
 
