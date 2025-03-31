@@ -14,4 +14,14 @@ async def protected_route(authorization: str | None = Header(None)):
         )
     logger.info(f"Authorizing request...")
     adapters = Adapters()
-    return await adapters.auth.authenticate_or_static_token(token=authorization)
+    is_authenticated = await adapters.auth.authenticate_or_static_token(token=authorization)
+    logger.info(f"Authorization result: {is_authenticated}")
+    
+    if not is_authenticated:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+    
+    return {"authenticated": True}
+    
