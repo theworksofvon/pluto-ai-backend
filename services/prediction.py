@@ -759,7 +759,7 @@ class PredictionService:
                         "name": prediction["player_name"],
                         "team": prediction["team"],
                         "opponent": prediction["opposing_team"],
-                        "time": prediction.get("game_time", "TBD"),
+                        "time": prediction.get("game_date", "TBD"),
                         "statLabel": prediction["prediction_type"].capitalize(),
                         "predictedStat": prediction["predicted_value"],
                         "imageUrl": image_url,
