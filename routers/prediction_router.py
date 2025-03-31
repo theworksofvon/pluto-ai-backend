@@ -3,8 +3,8 @@ from typing import Optional, Union
 from datetime import datetime
 from models import PredictionRequest, PredictionValue, PredictionResponse
 
-from agents import PredictionAgent
-from services.prediction import PredictionService
+from agents import PlayerPredictionAgent
+from services.player_prediction import PlayerPredictionService
 from services.data_pipeline import DataProcessor
 from logger import logger
 
@@ -15,12 +15,12 @@ router = APIRouter(
 )
 
 
-def get_prediction_agent() -> PredictionAgent:
-    return PredictionAgent()
+def get_prediction_agent() -> PlayerPredictionAgent:
+    return PlayerPredictionAgent()
 
 
-def get_prediction_service() -> PredictionService:
-    return PredictionService()
+def get_prediction_service() -> PlayerPredictionService:
+    return PlayerPredictionService()
 
 
 def get_data_pipeline() -> DataProcessor:
@@ -28,14 +28,15 @@ def get_data_pipeline() -> DataProcessor:
 
 
 @router.post(
-    "/player/{prediction_type}",
+    "/player/{prediction_type}/{prediction_version}",
     response_model=PredictionResponse,
     status_code=status.HTTP_200_OK,
 )
 async def predict_player_performance(
     prediction_type: str = "points",
+    prediction_version: str = "v1",
     data: PredictionRequest = Body(...),
-    agent: PredictionAgent = Depends(get_prediction_agent),
+    agent: PlayerPredictionAgent = Depends(get_prediction_agent),
 ):
     """
     Predict a player's performance for an upcoming game.
@@ -55,6 +56,7 @@ async def predict_player_performance(
             prediction_type=prediction_type,
             team=data.team,
             game_id=data.game_id,
+            prediction_version=prediction_version,
         )
 
         if prediction_data.get("status") == "error":
@@ -96,7 +98,7 @@ async def get_prediction_context(
     prediction_type: str = Query(
         "points", description="Type of prediction (points, rebounds, assists)"
     ),
-    service: PredictionService = Depends(get_prediction_service),
+    service: PlayerPredictionService = Depends(get_prediction_service),
 ):
     """
     Get the raw prediction context for a player.
