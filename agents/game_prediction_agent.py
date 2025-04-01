@@ -8,11 +8,11 @@ from adapters.scheduler import AbstractScheduler
 from logger import logger
 from datetime import datetime
 import json
-import numpy as np 
-import traceback 
+import numpy as np
+import traceback
 from agents.helpers.prediction_helpers import (
     parse_prediction_response,
-    DEFAULT_PREDICTION,
+    DEFAULT_GAME_PREDICTION,
 )
 from agents.helpers.team_helpers import get_team_abbr_from_id, get_team_name_from_abbr
 from schemas import GamePredictionCreate, PredictionType
@@ -87,7 +87,6 @@ When presenting predictions, provide clear and detailed explanations of your ana
         """
         logger.info("Game prediction agent is ready for game predictions")
 
-        # Schedule daily predictions
         self.scheduler.add_daily_job(
             func=self._run_daily_predictions,
             hour=9,
@@ -95,7 +94,6 @@ When presenting predictions, provide clear and detailed explanations of your ana
             job_id="daily_game_predictions",
         )
 
-        # Start the scheduler
         self.scheduler.start()
         logger.info("Scheduled game predictions to run every day at 9:30 AM")
 
@@ -118,17 +116,19 @@ When presenting predictions, provide clear and detailed explanations of your ana
                     if not home_team_id or not away_team_id or not game_id:
                         logger.warning(f"Skipping game due to missing IDs: {game}")
                         continue
-                    
+
                     # Get Abbreviations from IDs
                     try:
                         home_team_abbr = get_team_abbr_from_id(home_team_id)
                         away_team_abbr = get_team_abbr_from_id(away_team_id)
                     except NameError:
-                         logger.error("get_team_abbr_from_id helper function not found.")
-                         continue # Skip game if helper missing
+                        logger.error("get_team_abbr_from_id helper function not found.")
+                        continue  # Skip game if helper missing
                     except Exception as e:
-                         logger.error(f"Error getting team abbreviation for IDs {home_team_id}/{away_team_id}: {e}")
-                         continue # Skip game on error
+                        logger.error(
+                            f"Error getting team abbreviation for IDs {home_team_id}/{away_team_id}: {e}"
+                        )
+                        continue  # Skip game on error
 
                     if not home_team_abbr or not away_team_abbr:
                         logger.warning(
@@ -147,18 +147,22 @@ When presenting predictions, provide clear and detailed explanations of your ana
                     )
 
                 except Exception as e:
-                    logger.error(f"Error predicting game {game_id}: {e}\n{traceback.format_exc()}")
+                    logger.error(
+                        f"Error predicting game {game_id}: {e}\n{traceback.format_exc()}"
+                    )
                     continue
 
         except Exception as e:
-             logger.error(f"Error in daily game predictions: {e}\n{traceback.format_exc()}")
+            logger.error(
+                f"Error in daily game predictions: {e}\n{traceback.format_exc()}"
+            )
 
     async def predict_game_winner(
         self,
-        home_team_abbr: str, 
+        home_team_abbr: str,
         away_team_abbr: str,
         game_id: str | None = None,
-        prediction_version: str = "v2", # Default to V2 prompt
+        prediction_version: str = "v2",  # Default to V2 prompt
     ) -> Dict[str, Any]:
         """
         Predict the winner of an NBA game using an agent.
@@ -173,156 +177,119 @@ When presenting predictions, provide clear and detailed explanations of your ana
             A dictionary with prediction results.
         """
         context = await self.prediction_service.prepare_game_prediction_context(
-            home_team_abbr=home_team_abbr, 
-            away_team_abbr=away_team_abbr, 
+            home_team_abbr=home_team_abbr,
+            away_team_abbr=away_team_abbr,
             game_id=game_id,
         )
-        # Limit context logging
-        logger.info(f"Agent Context Status for {home_team_abbr} vs {away_team_abbr}: {context.get('status')}")
-        if context.get('status') == 'success':
-             logger.debug(f"Agent Context Keys: {list(context.keys())}") 
+        logger.info(
+            f"Agent Context Status for {home_team_abbr} vs {away_team_abbr}: {context.get('status')}"
+        )
+        if context.get("status") == "success":
+            logger.debug(f"Agent Context Keys: {list(context.keys())}")
 
         if context.get("status") == "error":
             return context
 
-        # Generate prediction using selected prompt version
         if prediction_version == "v1":
             prediction_response = await self._generate_prediction(context)
         else:
             prediction_response = await self._generate_prediction_v2(context)
         logger.info(f"Agent Prediction LLM response: {prediction_response}")
-        
-        # Get full team names for database saving
+
         try:
             home_team_name = get_team_name_from_abbr(home_team_abbr) or home_team_abbr
             away_team_name = get_team_name_from_abbr(away_team_abbr) or away_team_abbr
         except NameError:
-            logger.warning("get_team_name_from_abbr helper not found, using abbreviations for DB.")
+            logger.warning(
+                "get_team_name_from_abbr helper not found, using abbreviations for DB."
+            )
             home_team_name = home_team_abbr
             away_team_name = away_team_abbr
 
-        prediction_data = {} # Initialize
-        home_win_pct, away_win_pct = None, None # Initialize percentages
+        prediction_data = {}
+        home_win_pct, away_win_pct = None, None
         try:
-            prediction_data = parse_prediction_response(prediction_response)
-            
-            # --- Extract and Validate Percentages/Confidence --- 
-            home_win_pct_raw = prediction_data.get('home_team_win_percentage')
-            away_win_pct_raw = prediction_data.get('opposing_team_win_percentage')
-            confidence_raw = prediction_data.get('confidence')
-            predicted_value = prediction_data.get('value') # Predicted winner abbr
+            prediction_data = parse_prediction_response(
+                prediction_response, is_game_prediction=True
+            )
+            logger.info(f"Prediction data: {prediction_data}")
 
-            # Function to safely convert to float
+            home_win_pct_raw = prediction_data.get("home_team_win_percentage")
+            away_win_pct_raw = prediction_data.get("opposing_team_win_percentage")
+            confidence_raw = prediction_data.get("confidence")
+            predicted_winner = prediction_data.get("value")
+
+            nba_team_winner = get_team_name_from_abbr(predicted_winner)
+
             def safe_float(value):
-                 if value is None: return None
-                 try:
-                     # Handle potential percentage strings like "55%"
-                     if isinstance(value, str) and '%' in value:
-                          value = value.replace('%', '')
-                          return float(value) / 100.0
-                     return float(value)
-                 except (ValueError, TypeError):
-                     logger.warning(f"Could not convert value '{value}' to float.")
-                     return None
+                if value is None:
+                    return None
+                try:
+                    if isinstance(value, str) and "%" in value:
+                        value = value.replace("%", "")
+                        return float(value) / 100.0
+                    return float(value)
+                except (ValueError, TypeError):
+                    logger.warning(f"Could not convert value '{value}' to float.")
+                    return None
 
             home_win_pct = safe_float(home_win_pct_raw)
             away_win_pct = safe_float(away_win_pct_raw)
-            confidence = safe_float(confidence_raw) # Validate confidence as well
+            confidence = safe_float(confidence_raw)
 
-            # Fallback logic if percentages are missing/invalid
-            if home_win_pct is None or away_win_pct is None:
-                logger.warning("Win percentages missing or invalid, attempting fallback...")
-                if home_win_pct is not None: # Only away is missing
-                    away_win_pct = 1.0 - home_win_pct if 0.0 <= home_win_pct <= 1.0 else None
-                elif away_win_pct is not None: # Only home is missing
-                    home_win_pct = 1.0 - away_win_pct if 0.0 <= away_win_pct <= 1.0 else None
-                # Both missing, try confidence
-                elif confidence is not None and predicted_value is not None:
-                      if 0.0 <= confidence <= 1.0: # Ensure confidence is valid range
-                          if predicted_value == home_team_abbr:
-                              home_win_pct = confidence
-                              away_win_pct = 1.0 - confidence
-                          elif predicted_value == away_team_abbr:
-                              away_win_pct = confidence
-                              home_win_pct = 1.0 - confidence
-                          else: # Predicted value is weird, default 50/50
-                               home_win_pct, away_win_pct = 0.5, 0.5
-                      else:
-                           logger.warning(f"Confidence value {confidence} out of range for fallback.")
-                           home_win_pct, away_win_pct = 0.5, 0.5
-                else: # Confidence or value also missing, default 50/50
-                     home_win_pct, away_win_pct = 0.5, 0.5
-            # --- End Fallback Logic ---
+            prediction_data["home_team_win_percentage"] = home_win_pct
+            prediction_data["opposing_team_win_percentage"] = away_win_pct
+            prediction_data["confidence"] = confidence
 
-            # Ensure percentages are within [0, 1] after fallback/derivation
-            if home_win_pct is not None: home_win_pct = max(0.0, min(1.0, home_win_pct))
-            if away_win_pct is not None: away_win_pct = max(0.0, min(1.0, away_win_pct))
-
-            # Normalize if sum is slightly off
-            if home_win_pct is not None and away_win_pct is not None:
-                total_pct = home_win_pct + away_win_pct
-                # Only normalize if significantly different from 1.0 and total_pct is positive
-                if abs(total_pct - 1.0) > 0.01 and total_pct > 1e-6: # Allow tolerance, avoid division by near zero
-                     logger.warning(f"Win percentages ({home_win_pct:.3f}, {away_win_pct:.3f}) sum to {total_pct:.3f}. Normalizing.")
-                     home_win_pct /= total_pct
-                     away_win_pct /= total_pct
-                # Reset to 0.5/0.5 if sum is still invalid after normalization attempt or initially invalid
-                elif abs(total_pct - 1.0) > 0.01 or total_pct <= 1e-6: 
-                     logger.warning(f"Invalid win percentage sum ({total_pct:.3f}) after normalization/check. Resetting to 0.5/0.5.")
-                     home_win_pct, away_win_pct = 0.5, 0.5
-            
-            # Update prediction_data dict with validated/corrected values
-            prediction_data['home_team_win_percentage'] = home_win_pct
-            prediction_data['opposing_team_win_percentage'] = away_win_pct
-            prediction_data['confidence'] = confidence # Store validated confidence
-            
-            # Determine predicted winner based on validated percentages
-            if home_win_pct is not None and away_win_pct is not None:
-                 predicted_winner_name = home_team_name if home_win_pct >= away_win_pct else away_team_name
-            # Fallback to original predicted value if percentages ended up invalid
-            elif predicted_value == home_team_abbr:
-                 predicted_winner_name = home_team_name
-            elif predicted_value == away_team_abbr:
-                 predicted_winner_name = away_team_name
-            else:
-                 logger.warning(f"Cannot determine predicted winner from percentages or value ({predicted_value}). Defaulting to home.")
-                 predicted_winner_name = home_team_name
-                
             async with self.uow as uow:
-                logger.info(f"Saving game prediction for {home_team_name} vs {away_team_name}")
-                
+                logger.info(
+                    f"Saving game prediction for {home_team_name} vs {away_team_name}"
+                )
+
                 game_date_to_save = context.get("game_date", datetime.now().date())
-                explanation_to_save = prediction_data.get("explanation", "No explanation provided.")
-                confidence_to_save = confidence if confidence is not None and 0.0 <= confidence <= 1.0 else 0.5 
-                                
+                explanation_to_save = prediction_data.get(
+                    "explanation", "No explanation provided."
+                )
+                confidence_to_save = (
+                    confidence
+                    if confidence is not None and 0.0 <= confidence <= 1.0
+                    else 0.5
+                )
+
                 db_entry = GamePredictionCreate(
-                        game_date=game_date_to_save, 
-                        home_team=home_team_name, 
-                        away_team=away_team_name, 
-                        game_id=game_id,
-                        predicted_winner = predicted_winner_name,
-                        confidence=confidence_to_save,
-                        explanation=explanation_to_save,
-                        home_team_win_percentage=float(home_win_pct), 
-                        opposing_team_win_percentage=float(away_win_pct),
-                    )
+                    game_date=game_date_to_save,
+                    home_team=home_team_name,
+                    away_team=away_team_name,
+                    game_id=game_id,
+                    predicted_winner=nba_team_winner,
+                    confidence=confidence_to_save,
+                    explanation=explanation_to_save,
+                    home_team_win_percentage=float(home_win_pct),
+                    opposing_team_win_percentage=float(away_win_pct),
+                )
                 await uow.game_predictions.add(db_entry)
                 await uow.commit()
-                logger.info(f"Game prediction saved for {home_team_name} vs {away_team_name}")
-                
+                logger.info(
+                    f"Game prediction saved for {home_team_name} vs {away_team_name}"
+                )
+
         except json.JSONDecodeError as json_err:
-            logger.error(f"Failed to parse JSON response: {json_err}. Response: {prediction_response}")
-            prediction_data = DEFAULT_PREDICTION.copy()
-            prediction_data['home_team_win_percentage'] = 0.5
-            prediction_data['opposing_team_win_percentage'] = 0.5
+            logger.error(
+                f"Failed to parse JSON response: {json_err}. Response: {prediction_response}"
+            )
+            prediction_data = DEFAULT_GAME_PREDICTION.copy()
+            prediction_data["home_team_win_percentage"] = 0.5
+            prediction_data["opposing_team_win_percentage"] = 0.5
         except Exception as e:
-            logger.error(f"Error saving/parsing prediction: {e}\n{traceback.format_exc()}")
-            prediction_data = DEFAULT_PREDICTION.copy()
-            prediction_data['home_team_win_percentage'] = 0.5
-            prediction_data['opposing_team_win_percentage'] = 0.5
+            logger.error(
+                f"Error saving/parsing prediction: {e}\n{traceback.format_exc()}"
+            )
+            prediction_data = DEFAULT_GAME_PREDICTION.copy()
+            prediction_data["home_team_win_percentage"] = 0.5
+            prediction_data["opposing_team_win_percentage"] = 0.5
 
         result = {
-            "status": "success" if home_win_pct is not None else "error_parsing", 
+            "status": "success" if home_win_pct is not None else "error_parsing",
             "game": {
                 "home_team": home_team_abbr,
                 "away_team": away_team_abbr,
@@ -334,7 +301,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
                 "head_to_head": context.get("head_to_head"),
                 "vegas_factors": context.get("vegas_factors"),
                 "advanced_metrics": context.get("advanced_metrics"),
-                "live_data_keys": list(context.get("live_data", {}).keys())
+                "live_data_keys": list(context.get("live_data", {}).keys()),
             },
             "timestamp": context.get("timestamp", datetime.now().isoformat()),
         }
@@ -359,29 +326,31 @@ When presenting predictions, provide clear and detailed explanations of your ana
         head_to_head = context.get("head_to_head", {})
         vegas_factors = context.get("vegas_factors", {})
         advanced_metrics = context.get("advanced_metrics", {})
-        
+
         vegas_summary = "Not Available"
         if vegas_factors.get("status") != "not_available":
-            spread = vegas_factors.get('game_spread', 'N/A')
-            total = vegas_factors.get('over_under', 'N/A')
-            home_ml = vegas_factors.get('home_moneyline', 'N/A')
-            away_ml = vegas_factors.get('away_moneyline', 'N/A')
+            spread = vegas_factors.get("game_spread", "N/A")
+            total = vegas_factors.get("over_under", "N/A")
+            home_ml = vegas_factors.get("home_moneyline", "N/A")
+            away_ml = vegas_factors.get("away_moneyline", "N/A")
             vegas_summary = f"\n        - Spread: {spread}\n        - Total: {total}\n        - Home ML: {home_ml}\n        - Away ML: {away_ml}"
-            
-        home_injury_impact = advanced_metrics.get('home_injury_impact', 'N/A')
-        away_injury_impact = advanced_metrics.get('away_injury_impact', 'N/A')
-        injury_note = "(Note: Injury impact is a placeholder value 0-1 based on roster count)"
-        
+
+        home_injury_impact = advanced_metrics.get("home_injury_impact", "N/A")
+        away_injury_impact = advanced_metrics.get("away_injury_impact", "N/A")
+        injury_note = (
+            "(Note: Injury impact is a placeholder value 0-1 based on roster count)"
+        )
+
         # Format numeric values for the prompt, handle potential None/NaN
         def format_num(val, precision=3):
             if val is None or (isinstance(val, float) and np.isnan(val)):
-                 return "N/A"
+                return "N/A"
             if isinstance(val, (int, float)):
                 try:
-                     return f"{float(val):.{precision}f}"
+                    return f"{float(val):.{precision}f}"
                 except (ValueError, TypeError):
-                     return "N/A"
-            return str(val) # Fallback for non-numeric types that aren't None/NaN
+                    return "N/A"
+            return str(val)  # Fallback for non-numeric types that aren't None/NaN
 
         prompt = f"""
         Predict the winner of the NBA game between {home_team_abbr} (Home) and {away_team_abbr} (Away).
@@ -447,7 +416,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
         ```
         Note: home_team_win_percentage + opposing_team_win_percentage should ideally sum to 1.0.
         """
-        logger.info(f"Prediction prompt (V1):\n{prompt}") 
+        logger.info(f"Prediction prompt (V1):\n{prompt}")
         response = await self.prompt(prompt)
         logger.info(
             f"Prediction response for {home_team_abbr} vs {away_team_abbr} on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {response}"
@@ -473,39 +442,60 @@ When presenting predictions, provide clear and detailed explanations of your ana
             # Use the service's cleaner method if available
             cleaned_context = self.prediction_service._clean_nan(context)
         except AttributeError:
-            logger.warning("GamePredictionService does not have _clean_nan, performing basic clean for V2 prompt.")
+            logger.warning(
+                "GamePredictionService does not have _clean_nan, performing basic clean for V2 prompt."
+            )
             try:
-                 # Attempt robust NaN -> null conversion for JSON
-                 # Also handle potential Timestamps explicitly if cleaner not available
-                 def json_converter(o):
-                     if isinstance(o, (datetime, pd.Timestamp)):
-                         return o.isoformat()
-                     # Check for numpy types specifically if cleaner didn't run
-                     if isinstance(o, (np.int_, np.intc, np.intp, np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64)):
-                         return int(o)
-                     if isinstance(o, (np.float_, np.float16, np.float32, np.float64)):
-                         return None if np.isnan(o) else float(o)
-                     if isinstance(o, (np.bool_)):
-                          return bool(o)
-                     if isinstance(o, (np.void)): # Handle potential void types like from unique()
-                          return None
-                     # Fallback for other types
-                     try: # Attempt default serialization first
-                          json.dumps(o)
-                          return o
-                     except TypeError: # Fallback to string if default fails
-                          return str(o)
+                # Attempt robust NaN -> null conversion for JSON
+                # Also handle potential Timestamps explicitly if cleaner not available
+                def json_converter(o):
+                    if isinstance(o, (datetime, pd.Timestamp)):
+                        return o.isoformat()
+                    # Check for numpy types specifically if cleaner didn't run
+                    if isinstance(
+                        o,
+                        (
+                            np.int_,
+                            np.intc,
+                            np.intp,
+                            np.int8,
+                            np.int16,
+                            np.int32,
+                            np.int64,
+                            np.uint8,
+                            np.uint16,
+                            np.uint32,
+                            np.uint64,
+                        ),
+                    ):
+                        return int(o)
+                    if isinstance(o, (np.float_, np.float16, np.float32, np.float64)):
+                        return None if np.isnan(o) else float(o)
+                    if isinstance(o, (np.bool_)):
+                        return bool(o)
+                    if isinstance(
+                        o, (np.void)
+                    ):  # Handle potential void types like from unique()
+                        return None
+                    # Fallback for other types
+                    try:  # Attempt default serialization first
+                        json.dumps(o)
+                        return o
+                    except TypeError:  # Fallback to string if default fails
+                        return str(o)
 
-                 # Use json.dumps with the converter, then parse back to handle nested structures
-                 json_string = json.dumps(context, default=json_converter)
-                 cleaned_context = json.loads(json_string)
+                # Use json.dumps with the converter, then parse back to handle nested structures
+                json_string = json.dumps(context, default=json_converter)
+                cleaned_context = json.loads(json_string)
 
             except Exception as clean_err:
-                 logger.error(f"Error during basic context cleaning: {clean_err}")
-                 cleaned_context = context # Fallback to original context if cleaning fails
+                logger.error(f"Error during basic context cleaning: {clean_err}")
+                cleaned_context = (
+                    context  # Fallback to original context if cleaning fails
+                )
 
         # Ensure final context is serializable, use compact separators
-        safe_context = json.dumps(cleaned_context, separators=(',', ':'))
+        safe_context = json.dumps(cleaned_context, separators=(",", ":"))
 
         # *** Corrected Prompt Definition Start ***
         prompt = (
@@ -513,15 +503,14 @@ When presenting predictions, provide clear and detailed explanations of your ana
             f"the winner of the game between {home_team_abbr} and {away_team_abbr}.\n\n"
             "Here is the structured data you should analyze (JSON format):\n"
             f"{safe_context}\n\n"
-
             "Based on the provided data, strictly follow this JSON response schema:\n"
             "```json\n"
             "{\n"
-            f'  "value": string (either "{home_team_abbr}" or "{away_team_abbr}"),\n' # Use double quotes for JSON
+            f'  "value": string (either "{home_team_abbr}" or "{away_team_abbr}"),\n'  # Use double quotes for JSON
             '  "confidence": float (0 to 1, confidence in the predicted "value"),\n'
             '  "home_team_win_percentage": float (0 to 1, estimated probability home team wins),\n'
             '  "opposing_team_win_percentage": float (0 to 1, estimated probability away team wins),\n'
-            '  "explanation": string (valid JSON string, properly escaped)\n' # Emphasize valid JSON string
+            '  "explanation": string (valid string, with no apostrophes or quotes)\n'
             "}\n"
             "```\n\n"
             "Important: Ensure home_team_win_percentage + opposing_team_win_percentage sums to 1.0.\n\n"
@@ -531,11 +520,10 @@ When presenting predictions, provide clear and detailed explanations of your ana
             "3. Impact of Vegas odds and betting market signals (if available)\n"
             "4. Rest days, travel, and injury considerations\n"
             "5. Game context and motivational factors"
-        # *** Corrected Prompt Definition End (Added closing parenthesis) ***
         )
 
-        logger.info(f"Prediction prompt (V2):\n{prompt[:1000]}...") # Log truncated prompt
         response = await self.prompt(prompt)
+        logger.info(f"Prediction response (V2): {response}...")
         logger.info(
             f"Prediction response for {home_team_abbr} vs {away_team_abbr} on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {response}"
         )

@@ -165,7 +165,7 @@ class NbaAnalyticsInterface(ABC):
             Dict[str, Any]: Dictionary containing team information including logo URL.
         """
         pass
-    
+
     @abstractmethod
     async def get_team_logo_url(self, team_name: str) -> str:
         """

@@ -1,20 +1,26 @@
 import json
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
-import asyncio
 from logger import logger
 
 # Precompile regex patterns for efficiency.
 JSON_CODE_BLOCK_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 DICT_STRUCTURE_RE = re.compile(r"\{(.*?'value'.*?'explanation'.*?)\}", re.DOTALL)
+
+# Regexes for player predictions (value is numeric, with optional range fields)
 VALUE_RE = re.compile(r"[\"']value[\"']\s*:\s*([0-9.]+)")
 RANGE_LOW_RE = re.compile(r"[\"']range_low[\"']\s*:\s*([0-9.]+)")
 RANGE_HIGH_RE = re.compile(r"[\"']range_high[\"']\s*:\s*([0-9.]+)")
 CONFIDENCE_RE = re.compile(r"[\"']confidence[\"']\s*:\s*([0-9.]+)")
 EXPLANATION_RE = re.compile(r"[\"']explanation[\"']\s*:\s*[\"'](.+?)[\"']", re.DOTALL)
 
-DEFAULT_PREDICTION = {
+# Regexes for game predictions (value is a string; plus home and opposing win percentages)
+GAME_VALUE_RE = re.compile(r"[\"']value[\"']\s*:\s*[\"']([^\"']+)[\"']")
+HOME_TEAM_RE = re.compile(r"[\"']home_team_win_percentage[\"']\s*:\s*([0-9.]+)")
+OPPOSING_TEAM_RE = re.compile(r"[\"']opposing_team_win_percentage[\"']\s*:\s*([0-9.]+)")
+
+DEFAULT_PLAYER_PREDICTION = {
     "value": None,
     "range_low": None,
     "range_high": None,
@@ -22,14 +28,35 @@ DEFAULT_PREDICTION = {
     "explanation": "Failed to parse prediction",
 }
 
+DEFAULT_GAME_PREDICTION = {
+    "value": None,
+    "confidence": 0,
+    "home_team_win_percentage": None,
+    "opposing_team_win_percentage": None,
+    "explanation": "Failed to parse game prediction",
+}
 
-def parse_prediction_response(response: str) -> Dict[str, Any]:
+
+def parse_prediction_response(
+    response: str, is_game_prediction: bool = False
+) -> Dict[str, Any]:
     """
     Attempt to parse the prediction response as JSON.
     If direct parsing fails, use regex extraction.
-    Returns a dictionary with prediction data merged with DEFAULT_PREDICTION.
+    The function works for both player and game predictions.
+
+    Args:
+        response (str): The raw response string containing prediction data.
+        is_game_prediction (bool): Set to True if extracting game predictions.
+
+    Returns:
+        Dict[str, Any]: A dictionary with prediction data merged with the appropriate default values.
     """
     prediction_data = {}
+    default_prediction = (
+        DEFAULT_GAME_PREDICTION if is_game_prediction else DEFAULT_PLAYER_PREDICTION
+    )
+
     try:
         # Try to load the response directly as JSON.
         prediction_data = json.loads(response)
@@ -74,23 +101,48 @@ def parse_prediction_response(response: str) -> Dict[str, Any]:
         # If still not parsed, try to extract individual fields.
         if not prediction_data or prediction_data.get("value") is None:
             prediction_data = {}
-            value_match = VALUE_RE.search(response)
-            range_low_match = RANGE_LOW_RE.search(response)
-            range_high_match = RANGE_HIGH_RE.search(response)
-            confidence_match = CONFIDENCE_RE.search(response)
-            explanation_match = EXPLANATION_RE.search(response)
+            if is_game_prediction:
+                # Extract game prediction fields via regex.
+                game_value_match = GAME_VALUE_RE.search(response)
+                home_team_match = HOME_TEAM_RE.search(response)
+                opposing_team_match = OPPOSING_TEAM_RE.search(response)
+                confidence_match = CONFIDENCE_RE.search(response)
+                explanation_match = EXPLANATION_RE.search(response)
 
-            if value_match:
-                prediction_data["value"] = float(value_match.group(1))
-            if range_low_match:
-                prediction_data["range_low"] = float(range_low_match.group(1))
-            if range_high_match:
-                prediction_data["range_high"] = float(range_high_match.group(1))
-            if confidence_match:
-                prediction_data["confidence"] = float(confidence_match.group(1))
-            if explanation_match:
-                prediction_data["explanation"] = explanation_match.group(1)
-            logger.info("Extracted fields via regex extraction.")
+                if game_value_match:
+                    prediction_data["value"] = game_value_match.group(1)
+                if home_team_match:
+                    prediction_data["home_team_win_percentage"] = float(
+                        home_team_match.group(1)
+                    )
+                if opposing_team_match:
+                    prediction_data["opposing_team_win_percentage"] = float(
+                        opposing_team_match.group(1)
+                    )
+                if confidence_match:
+                    prediction_data["confidence"] = float(confidence_match.group(1))
+                if explanation_match:
+                    prediction_data["explanation"] = explanation_match.group(1)
+                logger.info("Extracted game prediction fields via regex extraction.")
+            else:
+                # Extract player prediction fields via regex.
+                value_match = VALUE_RE.search(response)
+                range_low_match = RANGE_LOW_RE.search(response)
+                range_high_match = RANGE_HIGH_RE.search(response)
+                confidence_match = CONFIDENCE_RE.search(response)
+                explanation_match = EXPLANATION_RE.search(response)
+
+                if value_match:
+                    prediction_data["value"] = float(value_match.group(1))
+                if range_low_match:
+                    prediction_data["range_low"] = float(range_low_match.group(1))
+                if range_high_match:
+                    prediction_data["range_high"] = float(range_high_match.group(1))
+                if confidence_match:
+                    prediction_data["confidence"] = float(confidence_match.group(1))
+                if explanation_match:
+                    prediction_data["explanation"] = explanation_match.group(1)
+                logger.info("Extracted player prediction fields via regex extraction.")
 
     # Merge with default values to ensure all keys are present.
-    return {**DEFAULT_PREDICTION, **prediction_data}
+    return {**default_prediction, **prediction_data}

@@ -10,7 +10,7 @@ from datetime import datetime
 import json
 from agents.helpers.prediction_helpers import (
     parse_prediction_response,
-    DEFAULT_PREDICTION,
+    DEFAULT_PLAYER_PREDICTION,
 )
 from agents.helpers.team_helpers import get_team_name_from_id
 from schemas import PlayerPredictionCreate, PredictionType
@@ -239,7 +239,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
                 )
         except Exception as e:
             logger.error(f"Error saving/parsing prediction: {e}")
-            prediction_data = DEFAULT_PREDICTION.copy()
+            prediction_data = DEFAULT_PLAYER_PREDICTION.copy()
 
         result = {
             "status": "success",

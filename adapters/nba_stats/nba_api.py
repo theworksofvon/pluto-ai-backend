@@ -288,7 +288,7 @@ class NbaAnalyticsPipeline(NbaAnalyticsInterface):
                 "logo": f"https://cdn.nba.com/logos/nba/{team_id}/primary/L/logo.svg",
             }
         return None
-    
+
     async def get_team_logo_url(self, team_name: str) -> str:
         """
         Get the logo URL for a team by team name.

@@ -9,9 +9,10 @@ class GameService:
     """
     Service for handling game-related data, including fetching predictions.
     """
+
     def __init__(self):
         self.adapters = Adapters()
-        self.supabase = Connections.supabase 
+        self.supabase = Connections.supabase
 
     async def get_todays_games(self):
         try:
@@ -26,7 +27,7 @@ class GameService:
         except Exception as e:
             logger.error(f"Error getting game in game_service: {e}")
             raise e
-        
+
     async def get_game_prediction(self, game_id: str):
         try:
             return self.adapters.nba_analytics.get_game_prediction(game_id)
@@ -53,9 +54,9 @@ class GameService:
                 self.supabase.table("game_predictions")
                 .select("*")
                 .eq("game_date", game_date)
-                .order("timestamp", desc=True) 
+                .order("timestamp", desc=True)
             )
-            
+
             result = query.execute()
             print(result)
 
@@ -64,42 +65,64 @@ class GameService:
                 return []
 
             # Get the nba_analytics adapter once
-            nba = self.adapters.nba_analytics 
+            nba = self.adapters.nba_analytics
             if not nba:
-                 logger.error("NBA Analytics adapter not available in GameService.")
-                 return []
+                logger.error("NBA Analytics adapter not available in GameService.")
+                return []
 
             for prediction in result.data:
                 try:
-                    home_logo = await nba.get_team_logo_url(team_name=prediction.get("home_team"))
-                    away_logo = await nba.get_team_logo_url(team_name=prediction.get("away_team"))
+                    home_logo = await nba.get_team_logo_url(
+                        team_name=prediction.get("home_team")
+                    )
+                    away_logo = await nba.get_team_logo_url(
+                        team_name=prediction.get("away_team")
+                    )
 
                     try:
-                        date_obj = datetime.strptime(prediction.get("game_date", ""), "%Y-%m-%d")
-                        formatted_date_str = date_obj.strftime('%b %d')
+                        date_obj = datetime.strptime(
+                            prediction.get("game_date", ""), "%Y-%m-%d"
+                        )
+                        formatted_date_str = date_obj.strftime("%b %d")
                     except (ValueError, TypeError):
                         formatted_date_str = "N/A"
 
                     pred_winner = prediction.get("predicted_winner")
                     conf = prediction.get("confidence")
-                    
+                    home_team_win_probability = prediction.get(
+                        "home_team_win_percentage"
+                    )
+                    away_team_win_probability = prediction.get(
+                        "opposing_team_win_percentage"
+                    )
+
                     formatted_prediction = {
                         "date": formatted_date_str,
                         "homeTeam": prediction.get("home_team", "N/A"),
                         "awayTeam": prediction.get("away_team", "N/A"),
                         "predictedWinner": pred_winner or "N/A",
+                        "homeTeamWinProbability": home_team_win_probability,
+                        "awayTeamWinProbability": away_team_win_probability,
                         "winProbability": conf,
-                        "homeTeamLogo": home_logo or "",
-                        "awayTeamLogo": away_logo or "",
+                        "homeTeamLogo": home_logo,
+                        "awayTeamLogo": away_logo,
                     }
                     formatted_predictions.append(formatted_prediction)
 
                 except Exception as inner_e:
-                     logger.error(f"Error processing individual game prediction {prediction.get('id', 'N/A')}: {inner_e}", exc_info=True)
+                    logger.error(
+                        f"Error processing individual game prediction {prediction.get('id', 'N/A')}: {inner_e}",
+                        exc_info=True,
+                    )
 
-            logger.info(f"Successfully formatted {len(formatted_predictions)} game predictions for {game_date}")
+            logger.info(
+                f"Successfully formatted {len(formatted_predictions)} game predictions for {game_date}"
+            )
             return formatted_predictions
 
         except Exception as e:
-            logger.error(f"Error getting formatted game predictions for {game_date}: {e}", exc_info=True)
+            logger.error(
+                f"Error getting formatted game predictions for {game_date}: {e}",
+                exc_info=True,
+            )
             return []

@@ -2,7 +2,14 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Body, status
 from typing import Optional, Union, List, Dict, Any
 from datetime import datetime
 
-from models import PredictionRequest, PredictionValue, PredictionResponse, GamePredictionRequest, GamePredictionValue, GamePredictionResponse
+from models import (
+    PredictionRequest,
+    PredictionValue,
+    PredictionResponse,
+    GamePredictionRequest,
+    GamePredictionValue,
+    GamePredictionResponse,
+)
 from agents import PlayerPredictionAgent, GamePredictionAgent
 from services.player_prediction import PlayerPredictionService
 from services.game_prediction import GamePredictionService
@@ -18,18 +25,21 @@ router = APIRouter(
 )
 
 
-
 def get_player_prediction_agent() -> PlayerPredictionAgent:
     return PlayerPredictionAgent()
+
 
 def get_player_prediction_service() -> PlayerPredictionService:
     return PlayerPredictionService()
 
+
 def get_game_prediction_agent() -> GamePredictionAgent:
     return GamePredictionAgent()
 
+
 def get_game_service() -> GameService:
     return GameService()
+
 
 def get_data_pipeline() -> DataProcessor:
     return DataProcessor()
@@ -96,7 +106,9 @@ async def predict_player_performance(
 
     except Exception as e:
         logger.error(f"Error making player prediction: {e}")
-        raise HTTPException(status_code=500, detail=f"Player prediction error: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Player prediction error: {str(e)}"
+        )
 
 
 @router.post(
@@ -137,12 +149,14 @@ async def predict_game_winner(
             )
 
         raw_prediction = agent_result.get("prediction", {})
-        
+
         prediction_value = GamePredictionValue(
             value=raw_prediction.get("value"),
             confidence=raw_prediction.get("confidence"),
             home_team_win_percentage=raw_prediction.get("home_team_win_percentage"),
-            opposing_team_win_percentage=raw_prediction.get("opposing_team_win_percentage"),
+            opposing_team_win_percentage=raw_prediction.get(
+                "opposing_team_win_percentage"
+            ),
             explanation=raw_prediction.get("explanation"),
         )
 
@@ -158,27 +172,33 @@ async def predict_game_winner(
         raise HTTPException(status_code=500, detail=f"Game prediction error: {str(e)}")
 
 
-@router.get("/game/winner",
-             response_model=List[Dict[str, Any]],
-             status_code=status.HTTP_200_OK)
+@router.get(
+    "/game/winner", response_model=List[Dict[str, Any]], status_code=status.HTTP_200_OK
+)
 async def get_formatted_game_predictions(
     game_date: str = Query(..., description="Date in YYYY-MM-DD format"),
-    service: GameService = Depends(get_game_service)
+    service: GameService = Depends(get_game_service),
 ):
     """
     Get all game predictions for a specific date, formatted for the frontend.
     """
     try:
-        datetime.strptime(game_date, "%Y-%m-%d") 
+        datetime.strptime(game_date, "%Y-%m-%d")
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
-        
+        raise HTTPException(
+            status_code=400, detail="Invalid date format. Use YYYY-MM-DD."
+        )
+
     try:
         predictions = await service.get_formatted_game_predictions_by_date(game_date)
         return predictions
     except Exception as e:
-        logger.exception(f"Error getting formatted game predictions for date {game_date}: {e}")
-        raise HTTPException(status_code=500, detail="Error retrieving formatted game predictions.")
+        logger.exception(
+            f"Error getting formatted game predictions for date {game_date}: {e}"
+        )
+        raise HTTPException(
+            status_code=500, detail="Error retrieving formatted game predictions."
+        )
 
 
 @router.get("/update-pluto-dataset")
