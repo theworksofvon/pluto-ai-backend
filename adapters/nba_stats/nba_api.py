@@ -13,6 +13,7 @@ from nba_api.stats.endpoints import (
 from nba_api.live.nba.endpoints import scoreboard
 from datetime import datetime
 from logger import logger
+from agents.helpers.team_helpers import get_team_abbr_from_name
 
 import pandas as pd
 from typing import List, Dict, Any
@@ -287,3 +288,10 @@ class NbaAnalyticsPipeline(NbaAnalyticsInterface):
                 "logo": f"https://cdn.nba.com/logos/nba/{team_id}/primary/L/logo.svg",
             }
         return None
+    
+    async def get_team_logo_url(self, team_name: str) -> str:
+        """
+        Get the logo URL for a team by team name.
+        """
+        team_abbr = get_team_abbr_from_name(team_name)
+        return f"https://a.espncdn.com/i/teamlogos/nba/500/{team_abbr}.png"

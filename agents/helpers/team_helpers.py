@@ -69,6 +69,8 @@ _TEAM_ID_TO_ABBR = {
 
 _TEAM_ABBR_TO_NAME = {v: _TEAM_ID_TO_NAME[k] for k, v in _TEAM_ID_TO_ABBR.items() if k in _TEAM_ID_TO_NAME}
 
+_TEAM_NAME_TO_ABBR = {name: abbr for abbr, name in _TEAM_ABBR_TO_NAME.items()}
+
 
 def get_team_name_from_id(team_id: str) -> Optional[str]:
     """
@@ -101,4 +103,14 @@ def get_team_name_from_abbr(team_abbr: str) -> Optional[str]:
         return team_name
     except Exception as e:
         logger.error(f"Error converting team abbreviation {team_abbr} to name: {e}")
+        return None
+
+def get_team_abbr_from_name(team_name: str) -> Optional[str]:
+    """
+    Convert a full team name to its team abbreviation.
+    """
+    try:
+        return _TEAM_NAME_TO_ABBR.get(team_name) 
+    except Exception as e:
+        logger.error(f"Error converting team name {team_name} to abbreviation: {e}")
         return None

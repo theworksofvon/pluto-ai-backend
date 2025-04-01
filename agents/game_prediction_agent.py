@@ -300,7 +300,6 @@ When presenting predictions, provide clear and detailed explanations of your ana
                         home_team=home_team_name, 
                         away_team=away_team_name, 
                         game_id=game_id,
-                        prediction_type=PredictionType("game_winner"),
                         predicted_winner = predicted_winner_name,
                         confidence=confidence_to_save,
                         explanation=explanation_to_save,
