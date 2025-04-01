@@ -19,3 +19,10 @@ async def get_game(game_id: str, service: GameService = Depends(get_game_service
 @router.get("/today")
 async def get_today_games(service: GameService = Depends(get_game_service)):
     return await service.get_todays_games()
+
+
+@router.get("/{game_id}/prediction")
+async def get_game_prediction(
+    game_id: str, service: GameService = Depends(get_game_service)
+):
+    return await service.get_game_prediction(game_id)

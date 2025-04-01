@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, Body, Path, Query
+from fastapi import APIRouter, Depends, Body, Path, Query, HTTPException
 from adapters import Adapters
 from services.data_pipeline import DataProcessor
 from services.player_service import PlayerService
 from typing import Optional
-from datetime import datetime
 
 
 router = APIRouter(prefix="/players", tags=["players"])
@@ -65,4 +64,6 @@ async def get_player_predictions(
             player_names, prediction_type
         )
     else:
-        return {"error": "Either player_names or game_date must be provided"}
+        raise HTTPException(
+            status_code=400, detail="Either player_names or game_date must be provided"
+        )

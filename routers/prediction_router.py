@@ -1,11 +1,21 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, status
-from typing import Optional, Union
+from typing import Optional, Union, List, Dict, Any
 from datetime import datetime
-from models import PredictionRequest, PredictionValue, PredictionResponse
 
-from agents import PredictionAgent
-from services.prediction import PredictionService
+from models import (
+    PredictionRequest,
+    PredictionValue,
+    PredictionResponse,
+    GamePredictionRequest,
+    GamePredictionValue,
+    GamePredictionResponse,
+)
+from agents import PlayerPredictionAgent, GamePredictionAgent
+from services.player_prediction import PlayerPredictionService
+from services.game_prediction import GamePredictionService
+from services.game_service import GameService
 from services.data_pipeline import DataProcessor
+
 from logger import logger
 
 router = APIRouter(
@@ -15,12 +25,20 @@ router = APIRouter(
 )
 
 
-def get_prediction_agent() -> PredictionAgent:
-    return PredictionAgent()
+def get_player_prediction_agent() -> PlayerPredictionAgent:
+    return PlayerPredictionAgent()
 
 
-def get_prediction_service() -> PredictionService:
-    return PredictionService()
+def get_player_prediction_service() -> PlayerPredictionService:
+    return PlayerPredictionService()
+
+
+def get_game_prediction_agent() -> GamePredictionAgent:
+    return GamePredictionAgent()
+
+
+def get_game_service() -> GameService:
+    return GameService()
 
 
 def get_data_pipeline() -> DataProcessor:
@@ -28,14 +46,15 @@ def get_data_pipeline() -> DataProcessor:
 
 
 @router.post(
-    "/player/{prediction_type}",
+    "/player/{prediction_type}/{prediction_version}",
     response_model=PredictionResponse,
     status_code=status.HTTP_200_OK,
 )
 async def predict_player_performance(
     prediction_type: str = "points",
+    prediction_version: str = "v1",
     data: PredictionRequest = Body(...),
-    agent: PredictionAgent = Depends(get_prediction_agent),
+    agent: PlayerPredictionAgent = Depends(get_player_prediction_agent),
 ):
     """
     Predict a player's performance for an upcoming game.
@@ -55,6 +74,7 @@ async def predict_player_performance(
             prediction_type=prediction_type,
             team=data.team,
             game_id=data.game_id,
+            prediction_version=prediction_version,
         )
 
         if prediction_data.get("status") == "error":
@@ -85,38 +105,100 @@ async def predict_player_performance(
         )
 
     except Exception as e:
-        logger.error(f"Error making prediction: {e}")
-        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
-
-
-@router.get("/context/{player_name}")
-async def get_prediction_context(
-    player_name: str,
-    opposing_team: str = Query(..., description="The opposing team name"),
-    prediction_type: str = Query(
-        "points", description="Type of prediction (points, rebounds, assists)"
-    ),
-    service: PredictionService = Depends(get_prediction_service),
-):
-    """
-    Get the raw prediction context for a player.
-
-    This is useful for debugging or for clients that want to use the raw data
-    to make their own predictions or visualizations.
-    """
-    logger.info(f"Context request received for {player_name} vs {opposing_team}")
-
-    try:
-        context = await service.prepare_prediction_context(
-            player_name=player_name,
-            opposing_team=opposing_team,
-            prediction_type=prediction_type,
+        logger.error(f"Error making player prediction: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Player prediction error: {str(e)}"
         )
 
-        return context
+
+@router.post(
+    "/game/winner/{prediction_version}",
+    response_model=GamePredictionResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def predict_game_winner(
+    prediction_version: str = "v2",
+    data: GamePredictionRequest = Body(...),
+    agent: GamePredictionAgent = Depends(get_game_prediction_agent),
+):
+    """
+    Predict the winner of an upcoming NBA game.
+
+    Accepts home and away team abbreviations.
+
+    Returns the predicted winner, confidence, win percentages, and explanation.
+    """
+    logger.info(
+        f"Game winner prediction request received for {data.home_team_abbr} vs {data.away_team_abbr}"
+    )
+
+    try:
+        agent_result = await agent.predict_game_winner(
+            home_team_abbr=data.home_team_abbr,
+            away_team_abbr=data.away_team_abbr,
+            game_id=data.game_id,
+            prediction_version=prediction_version,
+        )
+
+        if agent_result.get("status") != "success":
+            logger.error(f"Agent returned error: {agent_result.get('message')}")
+            return GamePredictionResponse(
+                status="error",
+                game=agent_result.get("game"),
+                message=agent_result.get("message", "Prediction failed internally."),
+            )
+
+        raw_prediction = agent_result.get("prediction", {})
+
+        prediction_value = GamePredictionValue(
+            value=raw_prediction.get("value"),
+            confidence=raw_prediction.get("confidence"),
+            home_team_win_percentage=raw_prediction.get("home_team_win_percentage"),
+            opposing_team_win_percentage=raw_prediction.get(
+                "opposing_team_win_percentage"
+            ),
+            explanation=raw_prediction.get("explanation"),
+        )
+
+        return GamePredictionResponse(
+            status="success",
+            game=agent_result.get("game"),
+            prediction=prediction_value,
+            context_summary=agent_result.get("context_summary"),
+        )
+
     except Exception as e:
-        logger.error(f"Error getting prediction context: {e}")
-        raise HTTPException(status_code=500, detail=f"Context error: {str(e)}")
+        logger.exception(f"Error making game winner prediction: {e}")
+        raise HTTPException(status_code=500, detail=f"Game prediction error: {str(e)}")
+
+
+@router.get(
+    "/game/winner", response_model=List[Dict[str, Any]], status_code=status.HTTP_200_OK
+)
+async def get_formatted_game_predictions(
+    game_date: str = Query(..., description="Date in YYYY-MM-DD format"),
+    service: GameService = Depends(get_game_service),
+):
+    """
+    Get all game predictions for a specific date, formatted for the frontend.
+    """
+    try:
+        datetime.strptime(game_date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(
+            status_code=400, detail="Invalid date format. Use YYYY-MM-DD."
+        )
+
+    try:
+        predictions = await service.get_formatted_game_predictions_by_date(game_date)
+        return predictions
+    except Exception as e:
+        logger.exception(
+            f"Error getting formatted game predictions for date {game_date}: {e}"
+        )
+        raise HTTPException(
+            status_code=500, detail="Error retrieving formatted game predictions."
+        )
 
 
 @router.get("/update-pluto-dataset")

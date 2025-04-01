@@ -52,18 +52,18 @@ class StaticAuthAdapter(AuthInterface):
         try:
             logger.info(f"Authenticating user with Supabase token...")
             token = self._extract_token(token)
-            
+
             jwt.decode(
-                token, 
-                self.jwt_secret, 
+                token,
+                self.jwt_secret,
                 algorithms=[self.jwt_algorithm],
                 audience=self.expected_audience,
                 options={
-                    "verify_signature": True, 
-                    "verify_aud": True,       
-                    "verify_iat": True,       
-                    "verify_nbf": True        
-                }
+                    "verify_signature": True,
+                    "verify_aud": True,
+                    "verify_iat": True,
+                    "verify_nbf": True,
+                },
             )
             logger.info(f"Token validated successfully...")
             return True
@@ -73,8 +73,8 @@ class StaticAuthAdapter(AuthInterface):
         except Exception as e:
             logger.error(f"Error authenticating user: {e}")
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, 
-                detail="Invalid or expired token"
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token",
             )
 
     async def decode_access_token(self, token: str) -> dict | None:
@@ -84,10 +84,10 @@ class StaticAuthAdapter(AuthInterface):
         try:
             token = self._extract_token(token)
             return jwt.decode(
-                token, 
-                self.jwt_secret, 
+                token,
+                self.jwt_secret,
                 algorithms=[self.jwt_algorithm],
-                audience=self.expected_audience
+                audience=self.expected_audience,
             )
         except JWTError:
             return None
