@@ -98,9 +98,14 @@ When presenting predictions, provide clear and detailed explanations of your ana
         self.scheduler.start()
         logger.info("Scheduled predictions to run every day at 9:30 AM")
 
-    async def _run_daily_predictions(self):
+    async def _run_daily_predictions(self, retry_count: int = 0, max_retries: int = 2):
         """
         Run predictions for today's games and key players.
+        Includes retry logic with a maximum of 2 retries.
+        
+        Args:
+            retry_count: Current number of retry attempts
+            max_retries: Maximum number of retry attempts allowed
         """
         try:
             today_games = await self.adapters.nba_analytics.get_todays_upcoming_games()
@@ -128,6 +133,11 @@ When presenting predictions, provide clear and detailed explanations of your ana
 
         except Exception as e:
             logger.error(f"Error in daily predictions: {e}")
+            if retry_count < max_retries:
+                logger.info(f"Retrying daily predictions (attempt {retry_count + 1}/{max_retries})")
+                await self._run_daily_predictions(retry_count + 1, max_retries)
+            else:
+                logger.error("Max retries reached for daily predictions")
 
     async def _get_game_players(self, games: List[Dict]) -> List[Tuple[str, str, str]]:
         """
