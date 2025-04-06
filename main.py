@@ -7,7 +7,6 @@ from routers import router
 from agency import Agency
 from agents import PlayerPredictionAgent, GamePredictionAgent
 from logger import logger
-from config import config
 
 app = FastAPI(
     title="Pluto AI",

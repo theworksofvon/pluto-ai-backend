@@ -91,7 +91,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
             func=self._run_daily_predictions,
             hour=9,
             minute=30,
-            job_id="daily_predictions",
+            job_id="daily_player_predictions",
         )
 
         # Start the scheduler
@@ -107,12 +107,15 @@ When presenting predictions, provide clear and detailed explanations of your ana
             retry_count: Current number of retry attempts
             max_retries: Maximum number of retry attempts allowed
         """
+        logger.info("Running daily player predictions...")
         try:
             today_games = await self.adapters.nba_analytics.get_todays_upcoming_games()
+            logger.info(f"Today's games: {today_games}")
             if not today_games:
                 logger.info("No games scheduled for today")
                 return
             game_players = await self._get_game_players(today_games)
+            logger.info(f"Game players: {game_players}")
             if not game_players:
                 logger.info("No key players identified for today's games")
                 return
@@ -132,9 +135,9 @@ When presenting predictions, provide clear and detailed explanations of your ana
                     continue
 
         except Exception as e:
-            logger.error(f"Error in daily predictions: {e}")
+            logger.error(f"Error in daily player predictions: {e}")
             if retry_count < max_retries:
-                logger.info(f"Retrying daily predictions (attempt {retry_count + 1}/{max_retries})")
+                logger.info(f"Retrying daily player predictions (attempt {retry_count + 1}/{max_retries})")
                 await self._run_daily_predictions(retry_count + 1, max_retries)
             else:
                 logger.error("Max retries reached for daily predictions")
