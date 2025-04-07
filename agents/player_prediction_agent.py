@@ -14,6 +14,25 @@ from agents.helpers.prediction_helpers import (
 )
 from agents.helpers.team_helpers import get_team_name_from_id
 from schemas import PlayerPredictionCreate, PredictionType
+import numpy as np
+import pandas as pd
+
+
+def convert_numpy_types(obj):
+    """Convert NumPy types to native Python types for JSON serialization."""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
+    elif isinstance(obj, dict):
+        return {key: convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(item) for item in obj]
+    return obj
 
 
 class PlayerPredictionAgent(Agent):
@@ -438,7 +457,8 @@ When presenting predictions, provide clear and detailed explanations of your ana
         prediction_type = context.get("prediction_type", "points")
         opposing_team = context.get("game", {}).get("opposing_team", "Unknown Team")
 
-        safe_context = json.dumps(context).replace("'", "")
+        # Convert NumPy types before JSON serialization
+        safe_context = json.dumps(convert_numpy_types(context)).replace("'", "")
 
         prompt = (
             f"You are Pluto, an expert NBA analytics model. Your task is to accurately predict "
