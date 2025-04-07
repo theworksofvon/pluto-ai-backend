@@ -121,7 +121,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
         """
         Run predictions for today's games and key players.
         Includes retry logic with a maximum of 2 retries.
-        
+
         Args:
             retry_count: Current number of retry attempts
             max_retries: Maximum number of retry attempts allowed
@@ -156,7 +156,9 @@ When presenting predictions, provide clear and detailed explanations of your ana
         except Exception as e:
             logger.error(f"Error in daily player predictions: {e}")
             if retry_count < max_retries:
-                logger.info(f"Retrying daily player predictions (attempt {retry_count + 1}/{max_retries})")
+                logger.info(
+                    f"Retrying daily player predictions (attempt {retry_count + 1}/{max_retries})"
+                )
                 await self._run_daily_predictions(retry_count + 1, max_retries)
             else:
                 logger.error("Max retries reached for daily predictions")
