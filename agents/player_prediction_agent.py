@@ -14,6 +14,25 @@ from agents.helpers.prediction_helpers import (
 )
 from agents.helpers.team_helpers import get_team_name_from_id
 from schemas import PlayerPredictionCreate, PredictionType
+import numpy as np
+import pandas as pd
+
+
+def convert_numpy_types(obj):
+    """Convert NumPy types to native Python types for JSON serialization."""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
+    elif isinstance(obj, dict):
+        return {key: convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(item) for item in obj]
+    return obj
 
 
 class PlayerPredictionAgent(Agent):
@@ -91,23 +110,31 @@ When presenting predictions, provide clear and detailed explanations of your ana
             func=self._run_daily_predictions,
             hour=9,
             minute=30,
-            job_id="daily_predictions",
+            job_id="daily_player_predictions",
         )
 
         # Start the scheduler
         self.scheduler.start()
         logger.info("Scheduled predictions to run every day at 9:30 AM")
 
-    async def _run_daily_predictions(self):
+    async def _run_daily_predictions(self, retry_count: int = 0, max_retries: int = 2):
         """
         Run predictions for today's games and key players.
+        Includes retry logic with a maximum of 2 retries.
+
+        Args:
+            retry_count: Current number of retry attempts
+            max_retries: Maximum number of retry attempts allowed
         """
+        logger.info("Running daily player predictions...")
         try:
             today_games = await self.adapters.nba_analytics.get_todays_upcoming_games()
+            logger.info(f"Today's games: {today_games}")
             if not today_games:
                 logger.info("No games scheduled for today")
                 return
             game_players = await self._get_game_players(today_games)
+            logger.info(f"Game players: {game_players}")
             if not game_players:
                 logger.info("No key players identified for today's games")
                 return
@@ -127,7 +154,14 @@ When presenting predictions, provide clear and detailed explanations of your ana
                     continue
 
         except Exception as e:
-            logger.error(f"Error in daily predictions: {e}")
+            logger.error(f"Error in daily player predictions: {e}")
+            if retry_count < max_retries:
+                logger.info(
+                    f"Retrying daily player predictions (attempt {retry_count + 1}/{max_retries})"
+                )
+                await self._run_daily_predictions(retry_count + 1, max_retries)
+            else:
+                logger.error("Max retries reached for daily predictions")
 
     async def _get_game_players(self, games: List[Dict]) -> List[Tuple[str, str, str]]:
         """
@@ -425,7 +459,8 @@ When presenting predictions, provide clear and detailed explanations of your ana
         prediction_type = context.get("prediction_type", "points")
         opposing_team = context.get("game", {}).get("opposing_team", "Unknown Team")
 
-        safe_context = json.dumps(context).replace("'", "")
+        # Convert NumPy types before JSON serialization
+        safe_context = json.dumps(convert_numpy_types(context)).replace("'", "")
 
         prompt = (
             f"You are Pluto, an expert NBA analytics model. Your task is to accurately predict "

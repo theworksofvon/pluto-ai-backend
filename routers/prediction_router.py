@@ -45,6 +45,20 @@ def get_data_pipeline() -> DataProcessor:
     return DataProcessor()
 
 
+@router.get("/all-predictions")
+async def get_all_predictions(
+    agent: PlayerPredictionAgent = Depends(get_player_prediction_agent),
+):
+    return await agent._run_daily_predictions()
+
+
+@router.get("/all-game-predictions")
+async def get_all_game_predictions(
+    agent: GamePredictionAgent = Depends(get_game_prediction_agent),
+):
+    return await agent._run_daily_predictions()
+
+
 @router.post(
     "/player/{prediction_type}/{prediction_version}",
     response_model=PredictionResponse,
