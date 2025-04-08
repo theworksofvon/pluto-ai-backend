@@ -256,7 +256,11 @@ class NbaAnalyticsPipeline(NbaAnalyticsInterface):
             str: Image URL for the player.
         """
         player_dict = players.find_players_by_full_name(player_name)
+        if not player_dict:
+            logger.error("No player found with name: %s", player_name)
+            return "https://path/to/default/image.png"
         player_id = player_dict[0]["id"]
+
         return f"https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/{player_id}.png"
 
     async def get_team_info(self, team_name: str) -> Dict[str, Any]:
