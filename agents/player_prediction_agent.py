@@ -236,6 +236,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
             opposing_team=opposing_team,
             prediction_type=prediction_type,
             game_id=game_id,
+            model_type=prediction_type,
         )
         logger.info(f"Agent Context: {context}")
 

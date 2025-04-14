@@ -1,13 +1,12 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from typing import Dict, Optional, Any, List
+from typing import Dict, Optional, Any
 from .data_pipeline import DataProcessor
 from logger import logger
 import os
 import joblib
 from adapters import Adapters
-from connections import Connections
 
 
 class PlayerPredictionService:
@@ -72,7 +71,7 @@ class PlayerPredictionService:
         opposing_team: str,
         prediction_type: str = "points",
         game_id: Optional[str] = None,
-        points_model_prediction: Optional[str] = None,
+        model_type: Optional[str] = "points",
     ) -> Dict[str, Any]:
         """
         Prepare all relevant context and data for a player prediction.
@@ -126,10 +125,8 @@ class PlayerPredictionService:
             player_stats, prediction_type
         )
 
-        if points_model_prediction:
-            points_model_prediction = self._get_model_prediction(
-                player_stats, prediction_type
-            )
+        if model_type:
+            model_prediction = self._get_model_prediction(player_stats, prediction_type)
 
         return {
             "status": "success",
@@ -141,6 +138,7 @@ class PlayerPredictionService:
             "prizepicks_factors": prizepicks_factors,
             "team_matchup": team_matchup,
             "season_stats": season_stats,
+            "model_prediction": model_prediction,
             "advanced_metrics": advanced_metrics,
             "raw_data": {
                 "player_stats": player_stats.to_dict("records")[-10:],  # Last 10 games
@@ -607,8 +605,22 @@ class PlayerPredictionService:
         """
         Get the points model prediction for the player.
         """
-        # TODO: Implement the points model prediction
-        return None
+        if (
+            "points" not in self.models
+            or "points" not in self.scalers
+            or "points" not in self.encoders
+        ):
+            logger.error("Points prediction model or its components are not loaded.")
+            return {"prediction": None}
+
+        points_model = self.models["points"]
+        points_scaler = self.scalers["points"]
+        points_encoder = self.encoders["points"]
+
+        processed_stats = points_scaler.transform(player_stats)
+        encoded_stats = points_encoder.transform(processed_stats)
+        prediction = points_model.predict(encoded_stats)
+        return {"prediction": prediction}
 
     def _get_rebounds_model_prediction(
         self, player_stats: pd.DataFrame
