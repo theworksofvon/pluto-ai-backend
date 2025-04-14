@@ -217,6 +217,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
         team: Optional[str] = None,
         game_id: Optional[str] = None,
         prediction_version: str = "v1",
+        prizepicks_line: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Predict a player's performance using an agent.
@@ -244,7 +245,9 @@ When presenting predictions, provide clear and detailed explanations of your ana
         if prediction_version == "v1":
             prediction_response = await self._generate_prediction(context)
         else:
-            prediction_response = await self._generate_prediction_v2(context)
+            prediction_response = await self._generate_prediction_v2(
+                context, prizepicks_line
+            )
         logger.info(f"Agent Prediction response: {prediction_response}")
 
         try:
@@ -265,6 +268,8 @@ When presenting predictions, provide clear and detailed explanations of your ana
                         range_high=prediction_data["range_high"],
                         confidence=prediction_data["confidence"],
                         explanation=prediction_data["explanation"],
+                        prizepicks_line=prediction_data["prizepicks_line"],
+                        prizepicks_reason=prediction_data["prizepicks_reason"],
                     )
                 )
                 await uow.commit()
@@ -377,6 +382,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
         prompt = f"""
         I need you to predict how many {prediction_type} {player_name} will record against {opposing_team}.
 
+        Use statistical reasoning and weigh recent trends more heavily than season averages if there is a strong deviation. Favor matchups and recent minutes played when uncertainty is high. Only include values that are well-supported by the data. Prioritize predictive signal over noise.
         Here's all the relevant data:
 
       RECENT FORM (Last 5 games):
@@ -421,11 +427,13 @@ When presenting predictions, provide clear and detailed explanations of your ana
         LINEAR REGRESSION MODEL PREDICTION:
         - The linear regression model predicts {context.get('model_prediction', 'not available')}
 
+        
         Based on this data, predict:
         1. The number of {prediction_type} {player_name} will record
-        2. A reasonable range (low-high)
+        2. A reasonable prediction range (low-high) that is no wider than 5 points unless absolutely necessary, based on the data.
         3. Your confidence level (0-1)
-        4. A clear explanation of the key factors influencing your prediction
+        4. A clear explanation of the key factors influencing your prediction.
+        5. Over/Under on the PrizePicks line and why.
 
         Provide your answer as JSON in this format:
         ```json
@@ -434,7 +442,9 @@ When presenting predictions, provide clear and detailed explanations of your ana
           'range_low': 21.0,
           'range_high': 28.0,
           'confidence': 0.75,
-          'explanation': 'Detailed reasoning here...'
+          'explanation': 'Detailed reasoning here...',
+          'prizepicks_line': 'over' or 'under',
+          'prizepicks_reason': 'Reasoning for the line choice'
         }}
         ```
         """
@@ -445,7 +455,9 @@ When presenting predictions, provide clear and detailed explanations of your ana
         )
         return response
 
-    async def _generate_prediction_v2(self, context: Dict[str, Any]) -> str:
+    async def _generate_prediction_v2(
+        self, context: Dict[str, Any], prizepicks_line: str
+    ) -> str:
         """
         Generate a prediction using the LLM based on the prepared context.
 
@@ -458,16 +470,20 @@ When presenting predictions, provide clear and detailed explanations of your ana
         player_name = context.get("player", "Unknown Player")
         prediction_type = context.get("prediction_type", "points")
         opposing_team = context.get("game", {}).get("opposing_team", "Unknown Team")
-
         # Convert NumPy types before JSON serialization
         safe_context = json.dumps(convert_numpy_types(context)).replace("'", "")
 
         prompt = (
-            f"You are Pluto, an expert NBA analytics model. Your task is to accurately predict "
+            f"You are Pluto, an expert NBA analytics model. Your task is to accurately predict"
+            f"Use statistical reasoning and weigh recent trends more heavily than season averages if there is a strong deviation. Favor matchups and recent minutes played when uncertainty is high. Only include values that are well-supported by the data. Prioritize predictive signal over noise."
+            f"Because it is the end of the season, consider that players may have reduced minutes, rest days, or unpredictable usage due to team strategy, playoff positioning, or tanking. Weigh recent playing time, team motivation, and coaching patterns accordingly when making your prediction."
+            f"Here is all the relevant data:"
             f"how many {prediction_type} the player {player_name} will record against the {opposing_team}.\n\n"
+            f"The PrizePicks line is at {prizepicks_line} points for {player_name}.\n\n"
             "Here is the structured data you should analyze (JSON format):\n"
             f"{safe_context}\n\n"
             "Based on the provided data, strictly follow this JSON response schema:\n"
+            "A reasonable prediction range (low-high) that is no wider than 5 points unless absolutely necessary, based on the data."
             "```json\n"
             "{\n"
             '  "value": float,\n'
@@ -475,6 +491,8 @@ When presenting predictions, provide clear and detailed explanations of your ana
             '  "range_high": float,\n'
             '  "confidence": float (0 to 1),\n'
             '  "explanation": string (avoid using apostrophes to ensure valid JSON)\n'
+            '  "prizepicks_line": "over" or "under",\n'
+            '  "prizepicks_reason": "Reasoning for the line choice"\n'
             "}\n"
             "```\n\n"
             "In your explanation, provide detailed reasoning covering:\n"
@@ -482,7 +500,8 @@ When presenting predictions, provide clear and detailed explanations of your ana
             "2. Historical matchup performance\n"
             "3. Impact of Vegas odds and betting lines\n"
             "4. Season-long statistical insights and advanced metrics\n"
-            "5. Contextual factors (e.g., injuries, rotations, importance of the game)"
+            "5. Contextual factors (e.g., injuries, rotations, importance of the game)\n"
+            "6. Over/Under on the PrizePicks line and why.\n"
         )
 
         logger.info(f"Prediction prompt: {prompt}")

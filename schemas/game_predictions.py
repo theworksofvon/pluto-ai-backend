@@ -38,6 +38,8 @@ class PlayerPredictionCreate(BaseModel):
     range_high: Optional[float] = None
     confidence: Optional[float] = None
     explanation: Optional[str] = None
+    prizepicks_line: Optional[str] = None
+    prizepicks_reason: Optional[str] = None
 
 
 class PlayerPredictionRead(BaseModel):
@@ -52,6 +54,8 @@ class PlayerPredictionRead(BaseModel):
     range_high: Optional[float] = None
     confidence: Optional[float] = None
     explanation: Optional[str] = None
+    prizepicks_line: Optional[str] = None
+    prizepicks_reason: Optional[str] = None
     timestamp: datetime
 
     class Config:

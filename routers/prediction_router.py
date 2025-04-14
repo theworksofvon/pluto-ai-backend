@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, status
-from typing import Optional, Union, List, Dict, Any
+from typing import List, Dict, Any
 from datetime import datetime
 
 from models import (
@@ -12,9 +12,9 @@ from models import (
 )
 from agents import PlayerPredictionAgent, GamePredictionAgent
 from services.player_prediction import PlayerPredictionService
-from services.game_prediction import GamePredictionService
 from services.game_service import GameService
 from services.data_pipeline import DataProcessor
+from services.eval_service import EvaluationService
 
 from logger import logger
 
@@ -43,6 +43,10 @@ def get_game_service() -> GameService:
 
 def get_data_pipeline() -> DataProcessor:
     return DataProcessor()
+
+
+def get_evaluation_service() -> EvaluationService:
+    return EvaluationService()
 
 
 @router.get("/all-predictions")
@@ -89,6 +93,7 @@ async def predict_player_performance(
             team=data.team,
             game_id=data.game_id,
             prediction_version=prediction_version,
+            prizepicks_line=data.prizepicks_line,
         )
 
         if prediction_data.get("status") == "error":
@@ -107,6 +112,8 @@ async def predict_player_performance(
             range_high=prediction_data["prediction"]["range_high"],
             confidence=prediction_data["prediction"]["confidence"],
             explanation=prediction_data["prediction"]["explanation"],
+            prizepicks_line=prediction_data["prediction"]["prizepicks_line"],
+            prizepicks_reason=prediction_data["prediction"]["prizepicks_reason"],
         )
 
         return PredictionResponse(
@@ -228,3 +235,25 @@ async def update_pluto_dataset(
     except Exception as e:
         logger.error(f"Error updating Pluto dataset: {e}")
         raise HTTPException(status_code=500, detail=f"Dataset update error: {str(e)}")
+
+
+@router.get("/evaluate-predictions/{prediction_type}")
+async def evaluate_predictions(
+    prediction_type: str = "points",
+    service: EvaluationService = Depends(get_evaluation_service),
+):
+    """
+    Evaluate all predictions in the database.
+    """
+    try:
+        if prediction_type == "points":
+            return await service.evaluate_points_predictions()
+        elif prediction_type == "rebounds":
+            return await service.evaluate_rebounds_predictions()
+        elif prediction_type == "assists":
+            return await service.evaluate_assists_predictions()
+        else:
+            raise HTTPException(status_code=400, detail="Invalid prediction type")
+    except Exception as e:
+        logger.error(f"Error evaluating predictions: {e}")
+        raise HTTPException(status_code=500, detail=f"Evaluation error: {str(e)}")
