@@ -25,7 +25,7 @@ class EvaluationService:
             response = (
                 self.supabase.table("player_predictions")
                 .select("*")
-                .is_("actual", "null")
+                .is_("actual", None)
                 .execute()
             )
             predictions_to_evaluate = response.data
@@ -72,6 +72,10 @@ class EvaluationService:
                             stat_type=prediction_type,
                         )
                     )
+                    if actual_value:
+                        self.supabase.table("player_predictions").update(
+                            {"actual": actual_value}
+                        ).eq("prediction_id", prediction["prediction_id"]).execute()
                     logger.debug(
                         f"Actual value for {player_name} ({prediction_type}) on {formatted_date}: {actual_value}"
                     )
@@ -83,7 +87,7 @@ class EvaluationService:
                     continue
                 except Exception as e:
                     logger.warning(
-                        f"Could not fetch actual result for prediction {prediction.prediction_id}: {e}"
+                        f"Could not fetch actual result for prediction {prediction['prediction_id']}: {e}"
                     )
                     fetch_errors += 1
                     continue
@@ -100,6 +104,9 @@ class EvaluationService:
 
                 is_over_under = None
                 if prizepicks_line and prizepicks_prediction:
+                    logger.info(
+                        f"Evaluating O/U for {prediction['prediction_id']}...direction: {prizepicks_prediction} line: {prizepicks_line}"
+                    )
                     direction = prizepicks_prediction.lower().strip()
                     if "over" in direction:
                         is_over_under = actual_value > prizepicks_line
@@ -107,11 +114,11 @@ class EvaluationService:
                         is_over_under = actual_value < prizepicks_line
                     else:
                         logger.warning(
-                            f"Unrecognized prizepicks_line '{prizepicks_line}' for prediction {prediction.prediction_id}"
+                            f"Unrecognized prizepicks_line '{prizepicks_line}' for prediction {prediction['prediction_id']}"
                         )
                 else:
                     logger.debug(
-                        f"Skipping O/U eval for {prediction.prediction_id}: line='{prizepicks_line}', reason='{prizepicks_reason}'"
+                        f"Skipping O/U eval for {prediction['prediction_id']}: line='{prizepicks_line}', reason='{prizepicks_reason}'"
                     )
 
                 response = (
@@ -123,20 +130,20 @@ class EvaluationService:
                             "was_over_under_correct": is_over_under,
                         }
                     )
-                    .eq("prediction_id", prediction.prediction_id)
+                    .eq("prediction_id", prediction["prediction_id"])
                     .execute()
                 )
 
-                logger.debug(f"Updated prediction ID: {prediction.prediction_id}")
+                logger.debug(f"Updated prediction ID: {prediction['prediction_id']}")
 
                 evaluated_count += 1
-                prediction.was_exactly_correct = is_exact
-                prediction.was_range_correct = is_range
-                prediction.was_over_under_correct = is_over_under
+                prediction["was_exactly_correct"] = is_exact
+                prediction["was_range_correct"] = is_range
+                prediction["was_over_under_correct"] = is_over_under
 
             except Exception as e:
                 logger.error(
-                    f"Error processing prediction ID {getattr(prediction, 'prediction_id', 'N/A')}: {e}",
+                    f"Error processing prediction ID {prediction['prediction_id']}: {e}",
                     exc_info=True,
                 )
                 update_errors += 1
@@ -149,6 +156,7 @@ class EvaluationService:
             all_predictions = (
                 self.supabase.table("player_predictions").select("*").execute()
             )
+            all_predictions = all_predictions.data
             logger.info(
                 f"Recalculating metrics based on {len(all_predictions)} total predictions."
             )
@@ -164,18 +172,18 @@ class EvaluationService:
 
         for p in all_predictions:
             if (
-                p.was_exactly_correct is not None
-                or p.was_range_correct is not None
-                or p.was_over_under_correct is not None
+                p["was_exactly_correct"] is not None
+                or p["was_range_correct"] is not None
+                or p["was_over_under_correct"] is not None
             ):
                 total_evaluated += 1
-                if p.was_exactly_correct:
+                if p["was_exactly_correct"]:
                     exact_correct += 1
-                if p.was_range_correct:
+                if p["was_range_correct"]:
                     range_correct += 1
-                if p.was_over_under_correct is not None:
+                if p["was_over_under_correct"] is not None:
                     ou_evaluable += 1
-                    if p.was_over_under_correct:
+                    if p["was_over_under_correct"]:
                         ou_correct += 1
 
         if total_evaluated == 0:
