@@ -10,9 +10,9 @@ class EvaluationService:
         self.adapters = Adapters()
         self.supabase = self.adapters.supabase.get_supabase_client()
 
-    async def evaluate_predictions(self):
+    async def evaluate_points_predictions(self):
         """
-        Fetches player predictions, gets actual results, updates correctness flags,
+        Fetches player points predictions, gets actual results, updates correctness flags,
         and calculates overall evaluation metrics.
         """
         all_predictions = []
@@ -211,9 +211,24 @@ class EvaluationService:
         )
         logger.info("--------------------------")
 
+        self.supabase.table("points_model_stats").insert(
+            {
+                "total_evaluated": total_evaluated,
+                "exact_accuracy": exact_accuracy,
+                "range_accuracy": range_accuracy,
+                "over_under_accuracy": ou_accuracy,
+            }
+        ).execute()
+
         return {
             "total_evaluated": total_evaluated,
             "exact_accuracy": exact_accuracy,
             "range_accuracy": range_accuracy,
             "ou_accuracy": ou_accuracy,
         }
+
+    async def evaluate_rebounds_predictions(self):
+        pass
+
+    async def evaluate_assists_predictions(self):
+        pass

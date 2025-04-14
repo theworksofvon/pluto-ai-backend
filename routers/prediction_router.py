@@ -237,15 +237,23 @@ async def update_pluto_dataset(
         raise HTTPException(status_code=500, detail=f"Dataset update error: {str(e)}")
 
 
-@router.get("/evaluate-predictions")
+@router.get("/evaluate-predictions/{prediction_type}")
 async def evaluate_predictions(
+    prediction_type: str = "points",
     service: EvaluationService = Depends(get_evaluation_service),
 ):
     """
     Evaluate all predictions in the database.
     """
     try:
-        return await service.evaluate_predictions()
+        if prediction_type == "points":
+            return await service.evaluate_points_predictions()
+        elif prediction_type == "rebounds":
+            return await service.evaluate_rebounds_predictions()
+        elif prediction_type == "assists":
+            return await service.evaluate_assists_predictions()
+        else:
+            raise HTTPException(status_code=400, detail="Invalid prediction type")
     except Exception as e:
         logger.error(f"Error evaluating predictions: {e}")
         raise HTTPException(status_code=500, detail=f"Evaluation error: {str(e)}")
