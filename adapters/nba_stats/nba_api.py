@@ -11,12 +11,13 @@ from nba_api.stats.endpoints import (
     commonteamroster,
 )
 from nba_api.live.nba.endpoints import scoreboard
-from datetime import datetime
+from datetime import datetime, date
 from logger import logger
 from agents.helpers.team_helpers import get_team_abbr_from_name
 
 import pandas as pd
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+import asyncio
 from .interface import NbaAnalyticsInterface
 
 
@@ -24,6 +25,12 @@ class NbaAnalyticsPipeline(NbaAnalyticsInterface):
     """
     A pipeline to fetch and process NBA analytics data.
     """
+
+    STAT_TYPE_COLUMN_MAP = {
+        "points": "PTS",
+        "rebounds": "REB",
+        "assists": "AST",
+    }
 
     # ------------------------------
     # PLAYER METHODS
@@ -297,3 +304,76 @@ class NbaAnalyticsPipeline(NbaAnalyticsInterface):
         """
         team_abbr = get_team_abbr_from_name(team_name)
         return f"https://a.espncdn.com/i/teamlogos/nba/500/{team_abbr}.png"
+
+    async def get_player_actual_stats(
+        self, player_name: str, game_date: str, stat_type: str
+    ) -> Optional[float]:
+        """
+        Get the actual value for a specific stat for a player on a given game date.
+        Kept concise using date filtering in the API call.
+
+        Args:
+            player_name (str): The name of the player to fetch stats for.
+            game_date (str): The date of the game to fetch stats for in format YYYY-MM-DD.
+            stat_type (str): The type of stat to fetch.
+
+        Returns:
+            float: The actual value for the stat.
+        """
+        logger.debug(f"Fetching actual {stat_type} for {player_name} on {game_date}")
+
+        nba_stat_column = self.STAT_TYPE_COLUMN_MAP.get(stat_type.lower())
+        if not nba_stat_column:
+            logger.error(f"Unknown stat_type: {stat_type}")
+            return None
+
+        try:
+            player_dict = players.find_players_by_full_name(player_name)
+            if not player_dict:
+                logger.warning(f"Player not found: {player_name}")
+                return None
+            player_id = player_dict[0]["id"]
+
+            if isinstance(game_date, str):
+                game_date = datetime.strptime(game_date, "%Y-%m-%d")
+            formatted_date = game_date.strftime("%m/%d/%Y")
+
+            loop = asyncio.get_running_loop()
+            game_log = await loop.run_in_executor(
+                None,
+                lambda: playergamelog.PlayerGameLog(
+                    player_id=player_id,
+                    date_from_nullable=formatted_date,
+                    date_to_nullable=formatted_date,
+                ),
+            )
+            game_logs_df = game_log.get_data_frames()
+
+            if not game_logs_df or game_logs_df[0].empty:
+                logger.warning(
+                    f"No game log found for {player_name} (ID: {player_id}) on {formatted_date}"
+                )
+                return None
+
+            actual_value = game_logs_df[0].iloc[0][nba_stat_column]
+            logger.info(
+                f"Found actual {stat_type} for {player_name} on {game_date}: {actual_value}"
+            )
+            return float(actual_value)
+
+        except KeyError:
+            logger.error(
+                f"Stat column '{nba_stat_column}' not found in game log for {player_name} on {game_date}."
+            )
+            return None
+        except IndexError:
+            logger.error(
+                f"Game log DataFrame was empty or malformed for {player_name} on {game_date}."
+            )
+            return None
+        except Exception as e:
+            logger.error(
+                f"Error fetching/processing stats for {player_name} on {game_date}: {e}",
+                exc_info=True,
+            )
+            return None

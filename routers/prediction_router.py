@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, status
-from typing import Optional, Union, List, Dict, Any
+from typing import List, Dict, Any
 from datetime import datetime
 
 from models import (
@@ -12,9 +12,9 @@ from models import (
 )
 from agents import PlayerPredictionAgent, GamePredictionAgent
 from services.player_prediction import PlayerPredictionService
-from services.game_prediction import GamePredictionService
 from services.game_service import GameService
 from services.data_pipeline import DataProcessor
+from services.eval_service import EvaluationService
 
 from logger import logger
 
@@ -43,6 +43,10 @@ def get_game_service() -> GameService:
 
 def get_data_pipeline() -> DataProcessor:
     return DataProcessor()
+
+
+def get_evaluation_service() -> EvaluationService:
+    return EvaluationService()
 
 
 @router.get("/all-predictions")
@@ -231,3 +235,17 @@ async def update_pluto_dataset(
     except Exception as e:
         logger.error(f"Error updating Pluto dataset: {e}")
         raise HTTPException(status_code=500, detail=f"Dataset update error: {str(e)}")
+
+
+@router.get("/evaluate-predictions")
+async def evaluate_predictions(
+    service: EvaluationService = Depends(get_evaluation_service),
+):
+    """
+    Evaluate all predictions in the database.
+    """
+    try:
+        return await service.evaluate_predictions()
+    except Exception as e:
+        logger.error(f"Error evaluating predictions: {e}")
+        raise HTTPException(status_code=500, detail=f"Evaluation error: {str(e)}")

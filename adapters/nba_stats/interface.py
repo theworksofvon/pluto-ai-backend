@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import pandas as pd
 from typing import List, Dict, Any
+from datetime import date
 
 
 class NbaAnalyticsInterface(ABC):
@@ -170,5 +171,14 @@ class NbaAnalyticsInterface(ABC):
     async def get_team_logo_url(self, team_name: str) -> str:
         """
         Get the logo URL for a team by team name.
+        """
+        pass
+
+    @abstractmethod
+    async def get_player_actual_stats(
+        self, player_name: str, game_date: date, stat_type: str
+    ) -> float:
+        """
+        Get the actual stats for a player on a given date.
         """
         pass

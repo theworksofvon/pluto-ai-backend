@@ -7,6 +7,7 @@ from .auth.auth import StaticAuthAdapter
 from connections import Connections
 from .prizepicks import PrizePicksAdapter
 from .scheduler import AbstractScheduler, APSchedulerAdapter
+from .supabase.supabase import SupabaseAdapter
 
 
 class Adapters:
@@ -16,6 +17,7 @@ class Adapters:
     auth: AuthInterface
     prizepicks: PrizePicksAdapter
     scheduler: AbstractScheduler
+    supabase: SupabaseAdapter
 
     def __init__(self):
         self.vegas_odds = VegasOddsPipeline()
@@ -24,6 +26,7 @@ class Adapters:
         self.prizepicks = PrizePicksAdapter()
         self._uow = None
         self.scheduler = APSchedulerAdapter()
+        self.supabase = SupabaseAdapter()
 
     @property
     def uow(self) -> AbstractUnitOfWork:
