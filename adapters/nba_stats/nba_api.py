@@ -190,9 +190,7 @@ class NbaAnalyticsPipeline(NbaAnalyticsInterface):
         today = datetime.today().strftime("%m/%d/%Y")
         scoreboard = scoreboardv2.ScoreboardV2(game_date=today)
         games = scoreboard.get_normalized_dict()["GameHeader"]
-        logger.info(f"Games: {games}")
 
-        # Return just the fields we need
         return [
             {
                 "HOME_TEAM_ID": game["HOME_TEAM_ID"],

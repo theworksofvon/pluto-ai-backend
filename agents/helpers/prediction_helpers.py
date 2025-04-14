@@ -14,6 +14,8 @@ RANGE_LOW_RE = re.compile(r"[\"']range_low[\"']\s*:\s*([0-9.]+)")
 RANGE_HIGH_RE = re.compile(r"[\"']range_high[\"']\s*:\s*([0-9.]+)")
 CONFIDENCE_RE = re.compile(r"[\"']confidence[\"']\s*:\s*([0-9.]+)")
 EXPLANATION_RE = re.compile(r"[\"']explanation[\"']\s*:\s*[\"'](.+?)[\"']", re.DOTALL)
+PRIZEPICKS_LINE_RE = re.compile(r"[\"']prizepicks_line[\"']\s*:\s*[\"'](.+?)[\"']")
+PRIZEPICKS_REASON_RE = re.compile(r"[\"']prizepicks_reason[\"']\s*:\s*[\"'](.+?)[\"']")
 
 # Regexes for game predictions (value is a string; plus home and opposing win percentages)
 GAME_VALUE_RE = re.compile(r"[\"']value[\"']\s*:\s*[\"']([^\"']+)[\"']")
@@ -26,6 +28,8 @@ DEFAULT_PLAYER_PREDICTION = {
     "range_high": None,
     "confidence": 0,
     "explanation": "Failed to parse prediction",
+    "prizepicks_line": None,
+    "prizepicks_reason": None,
 }
 
 DEFAULT_GAME_PREDICTION = {
@@ -108,6 +112,8 @@ def parse_prediction_response(
                 opposing_team_match = OPPOSING_TEAM_RE.search(response)
                 confidence_match = CONFIDENCE_RE.search(response)
                 explanation_match = EXPLANATION_RE.search(response)
+                prizepicks_line_match = PRIZEPICKS_LINE_RE.search(response)
+                prizepicks_reason_match = PRIZEPICKS_REASON_RE.search(response)
 
                 if game_value_match:
                     prediction_data["value"] = game_value_match.group(1)
@@ -123,6 +129,12 @@ def parse_prediction_response(
                     prediction_data["confidence"] = float(confidence_match.group(1))
                 if explanation_match:
                     prediction_data["explanation"] = explanation_match.group(1)
+                if prizepicks_line_match:
+                    prediction_data["prizepicks_line"] = prizepicks_line_match.group(1)
+                if prizepicks_reason_match:
+                    prediction_data["prizepicks_reason"] = (
+                        prizepicks_reason_match.group(1)
+                    )
                 logger.info("Extracted game prediction fields via regex extraction.")
             else:
                 # Extract player prediction fields via regex.
@@ -131,6 +143,8 @@ def parse_prediction_response(
                 range_high_match = RANGE_HIGH_RE.search(response)
                 confidence_match = CONFIDENCE_RE.search(response)
                 explanation_match = EXPLANATION_RE.search(response)
+                prizepicks_line_match = PRIZEPICKS_LINE_RE.search(response)
+                prizepicks_reason_match = PRIZEPICKS_REASON_RE.search(response)
 
                 if value_match:
                     prediction_data["value"] = float(value_match.group(1))
@@ -142,6 +156,12 @@ def parse_prediction_response(
                     prediction_data["confidence"] = float(confidence_match.group(1))
                 if explanation_match:
                     prediction_data["explanation"] = explanation_match.group(1)
+                if prizepicks_line_match:
+                    prediction_data["prizepicks_line"] = prizepicks_line_match.group(1)
+                if prizepicks_reason_match:
+                    prediction_data["prizepicks_reason"] = (
+                        prizepicks_reason_match.group(1)
+                    )
                 logger.info("Extracted player prediction fields via regex extraction.")
 
     # Merge with default values to ensure all keys are present.

@@ -89,6 +89,7 @@ async def predict_player_performance(
             team=data.team,
             game_id=data.game_id,
             prediction_version=prediction_version,
+            prizepicks_line=data.prizepicks_line,
         )
 
         if prediction_data.get("status") == "error":
@@ -107,6 +108,8 @@ async def predict_player_performance(
             range_high=prediction_data["prediction"]["range_high"],
             confidence=prediction_data["prediction"]["confidence"],
             explanation=prediction_data["prediction"]["explanation"],
+            prizepicks_line=prediction_data["prediction"]["prizepicks_line"],
+            prizepicks_reason=prediction_data["prediction"]["prizepicks_reason"],
         )
 
         return PredictionResponse(

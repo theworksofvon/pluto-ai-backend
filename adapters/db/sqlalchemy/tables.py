@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Float, Enum
+from sqlalchemy import Column, Integer, String, Date, DateTime, Float, Enum, Boolean
 from sqlalchemy.orm import declarative_base
 from datetime import datetime
 from enum import Enum
@@ -54,6 +54,14 @@ class PlayerPrediction(Base):
     range_high = Column(Float, nullable=True)
     confidence = Column(Float, nullable=True)
     explanation = Column(String, nullable=True)
+    prizepicks_line = Column(String, nullable=True)
+    prizepicks_reason = Column(String, nullable=True)
+    llm_used = Column(String, nullable=False, default="deepseek-v3")
+    prompt_template = Column(String, nullable=False, default="v2")
+    was_exactly_correct = Column(Boolean, nullable=True)
+    was_range_correct = Column(Boolean, nullable=True)
+    was_over_under_correct = Column(Boolean, nullable=True)
+
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     def __repr__(self):

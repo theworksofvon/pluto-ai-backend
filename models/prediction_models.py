@@ -9,6 +9,7 @@ class PredictionRequest(BaseModel):
     prediction_type: Optional[str] = "points"
     game_id: Optional[str] = None
     team: Optional[str] = None
+    prizepicks_line: Optional[str] = None
 
 
 class PredictionValue(BaseModel):
@@ -17,6 +18,8 @@ class PredictionValue(BaseModel):
     range_high: float
     confidence: float
     explanation: str
+    prizepicks_line: str
+    prizepicks_reason: str
 
 
 class PredictionResponse(BaseModel):
