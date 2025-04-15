@@ -72,6 +72,7 @@ class EvaluationService:
                             stat_type=prediction_type,
                         )
                     )
+                    logger.info(f"Actual value for {player_name} ({prediction_type}) on {formatted_date}: {actual_value}")
                     if actual_value:
                         self.supabase.table("player_predictions").update(
                             {"actual": actual_value}
@@ -232,3 +233,27 @@ class EvaluationService:
 
     async def evaluate_assists_predictions(self):
         pass
+
+
+    async def get_and_fill_actual_values(self):
+        response = (
+            self.supabase.table("player_predictions")
+            .select("*")
+            .is_("actual", None)
+            .execute()
+        )
+        predictions_to_fill = response.data
+
+        for prediction in predictions_to_fill:
+            player_name = prediction["player_name"]
+            game_date = prediction["game_date"]
+            prediction_type = prediction["prediction_type"]
+
+            actual_value = await self.adapters.nba_analytics.get_player_actual_stats(
+                player_name=player_name,
+                game_date=game_date,
+                stat_type=prediction_type,
+            )
+            self.supabase.table("player_predictions").update({"actual": actual_value}).eq("prediction_id", prediction["prediction_id"]).execute()
+            
+        logger.info(f"All actual values filled....")

@@ -257,3 +257,15 @@ async def evaluate_predictions(
     except Exception as e:
         logger.error(f"Error evaluating predictions: {e}")
         raise HTTPException(status_code=500, detail=f"Evaluation error: {str(e)}")
+   
+
+@router.get("/fill-actual-values")
+async def fill_actual_values(
+    service: EvaluationService = Depends(get_evaluation_service),
+):
+    try:
+        return await service.get_and_fill_actual_values()
+    except Exception as e:
+        logger.error(f"Error filling actual values: {e}")
+        raise HTTPException(status_code=500, detail=f"Fill actual values error: {str(e)}")
+

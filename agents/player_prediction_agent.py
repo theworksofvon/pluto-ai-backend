@@ -269,8 +269,9 @@ When presenting predictions, provide clear and detailed explanations of your ana
                         range_high=prediction_data["range_high"],
                         confidence=prediction_data["confidence"],
                         explanation=prediction_data["explanation"],
-                        prizepicks_line=prediction_data["prizepicks_line"],
+                        prizepicks_prediction=prediction_data["prizepicks_line"],
                         prizepicks_reason=prediction_data["prizepicks_reason"],
+                        prizepicks_line=float(prizepicks_line),
                     )
                 )
                 await uow.commit()
@@ -477,12 +478,13 @@ When presenting predictions, provide clear and detailed explanations of your ana
         prompt = (
             f"You are Pluto, an expert NBA analytics model. Your task is to accurately predict"
             f"Use statistical reasoning and weigh recent trends more heavily than season averages if there is a strong deviation. Favor matchups and recent minutes played when uncertainty is high. Only include values that are well-supported by the data. Prioritize predictive signal over noise."
-            f"Because it is the end of the season, consider that players may have reduced minutes, rest days, or unpredictable usage due to team strategy, playoff positioning, or tanking. Weigh recent playing time, team motivation, and coaching patterns accordingly when making your prediction."
+            f"Because it is the NBA Play-In Tournament, consider that teams could potentially be highly motivated and rotations are likely to tighten. Starters may play heavier minutes, and coaches will prioritize winning over player rest. Weigh recent performance, matchup importance, and coaching tendencies accordingly when making your prediction."
             f"Here is all the relevant data:"
             f"how many {prediction_type} the player {player_name} will record against the {opposing_team}.\n\n"
             f"The PrizePicks line is at {prizepicks_line} points for {player_name}.\n\n"
             "Here is the structured data you should analyze (JSON format):\n"
             f"{safe_context}\n\n"
+            "Pay close attention to the 'historical_predictions' section within the data. This shows your past predictions for this exact matchup and the actual results. Analyze your past performance, noting any discrepancies, and use this analysis to refine your current prediction and reasoning.\n\n"
             "Based on the provided data, strictly follow this JSON response schema:\n"
             "A reasonable prediction range (low-high) that is no wider than 5 points unless absolutely necessary, based on the data."
             "```json\n"

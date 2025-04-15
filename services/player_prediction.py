@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 from .data_pipeline import DataProcessor
 from logger import logger
 import os
@@ -20,6 +20,7 @@ class PlayerPredictionService:
         self.data_processor = DataProcessor()
         self.adapters = Adapters()
         self.prizepicks = self.adapters.prizepicks
+        self.supabase = self.adapters.supabase.get_supabase_client()
 
         self.models = {}
         self.scalers = {}
@@ -128,6 +129,41 @@ class PlayerPredictionService:
         if model_type:
             model_prediction = self._get_model_prediction(player_stats, prediction_type)
 
+        predictions_to_send: List[Dict[str, Any]] = []
+        previous_predictions = (
+            self.supabase.table("player_predictions")
+            .select("*")
+            .eq("player_name", player_name)
+            .eq("prediction_type", prediction_type)
+            .eq("opposing_team", opposing_team)
+            .execute()
+        )
+
+        if previous_predictions.data:
+            for prediction in previous_predictions.data:
+                if prediction.get("actual") is not None:
+                    predictions_to_send.append(
+                        {
+                            "prediction_id": prediction.get("prediction_id"),
+                            "actual": prediction.get("actual"),
+                            "predicted_value": prediction.get("predicted_value"),
+                            "range_low": prediction.get("range_low"),
+                            "range_high": prediction.get("range_high"),
+                            "confidence": prediction.get("confidence"),
+                            "explanation": prediction.get("explanation"),
+                            "prizepicks_prediction": prediction.get(
+                                "prizepicks_prediction"
+                            ),
+                            "prizepicks_line": prediction.get("prizepicks_line"),
+                            "game_date": prediction.get("game_date"),
+                        }
+                    )
+            predictions_to_send = sorted(
+                predictions_to_send,
+                key=lambda x: x.get("game_date", "1970-01-01"),
+                reverse=True,
+            )[:5]
+
         return {
             "status": "success",
             "player": player_name,
@@ -139,9 +175,10 @@ class PlayerPredictionService:
             "team_matchup": team_matchup,
             "season_stats": season_stats,
             "model_prediction": model_prediction,
+            "historical_predictions": predictions_to_send,
             "advanced_metrics": advanced_metrics,
             "raw_data": {
-                "player_stats": player_stats.to_dict("records")[-10:],  # Last 10 games
+                "player_stats": player_stats.to_dict("records")[-10:],
                 "total_games_available": len(player_stats),
             },
             "timestamp": datetime.now().isoformat(),
@@ -617,10 +654,66 @@ class PlayerPredictionService:
         points_scaler = self.scalers["points"]
         points_encoder = self.encoders["points"]
 
-        processed_stats = points_scaler.transform(player_stats)
-        encoded_stats = points_encoder.transform(processed_stats)
-        prediction = points_model.predict(encoded_stats)
-        return {"prediction": prediction}
+        player_stats = player_stats.sort_values(by="game_date_parsed", ascending=True)
+
+        if player_stats.empty:
+            logger.error("Player stats DataFrame is empty, cannot make prediction.")
+            return {"prediction": None}
+
+        latest_game_stats = player_stats.iloc[-1:].copy()
+        logger.info(f"Using latest game stats for prediction: {latest_game_stats}")
+
+        latest_game_stats = latest_game_stats.drop(
+            columns=["Game_ID", "GAME_DATE", "MATCHUP", "WL", "PTS"], errors="ignore"
+        )
+        latest_game_stats = latest_game_stats.fillna(0)
+
+        numeric_cols = [
+            "home_away_flag",
+            "rolling_pts_5",
+            "rolling_min_5",
+            "rolling_fga_5",
+            "rolling_fg_pct_5",
+            "days_since_last_game",
+            "back_to_back_flag",
+        ]
+        categorical_cols = ["player_name", "opponent", "game_date_parsed"]
+
+        required_cols = numeric_cols + categorical_cols
+        missing_cols = [
+            col for col in required_cols if col not in latest_game_stats.columns
+        ]
+        if missing_cols:
+            logger.error(f"Missing required columns for prediction: {missing_cols}")
+            return {"prediction": None}
+
+        numeric_data = latest_game_stats[numeric_cols]
+        categorical_data = latest_game_stats[categorical_cols].copy()
+        # Convert categorical columns to strings to match training; for datetime columns, format as 'YYYY-MM-DD'
+        for col in categorical_cols:
+            if pd.api.types.is_datetime64_any_dtype(categorical_data[col]):
+                categorical_data[col] = categorical_data[col].dt.strftime("%Y-%m-%d")
+            else:
+                categorical_data[col] = categorical_data[col].astype(str)
+        encoded_cat = points_encoder.transform(categorical_data)
+        encoded_cat_df = pd.DataFrame(
+            encoded_cat,
+            columns=points_encoder.get_feature_names_out(categorical_cols),
+            index=latest_game_stats.index,
+        )
+
+        new_features = pd.concat([numeric_data, encoded_cat_df], axis=1)
+
+        processed_stats = points_scaler.transform(new_features)
+
+        prediction = points_model.predict(processed_stats)
+
+        single_prediction = (
+            prediction[0] if prediction.ndim > 0 and len(prediction) > 0 else None
+        )
+
+        logger.info(f"Prediction for next game: {single_prediction}")
+        return {"prediction": single_prediction}
 
     def _get_rebounds_model_prediction(
         self, player_stats: pd.DataFrame
