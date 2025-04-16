@@ -13,7 +13,6 @@ class RaptorRetriever(BaseRetriever):
 
 base_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(base_dir)))
-agency_dir = os.path.join(parent_dir, "agency")
-shared_dir = os.path.join(agency_dir, "shared")
-raptor_path = os.path.join(shared_dir, "raptor.pdf")
-personality_retriever = RaptorRetriever(path=raptor_path)
+raptor_dir = os.path.join(parent_dir, "raptor")
+raptor_path = os.path.join(raptor_dir, "raptor.pdf")
+raptor_retriever = RaptorRetriever(path=raptor_path)

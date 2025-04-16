@@ -1,10 +1,6 @@
 from fastapi import APIRouter, Depends
 from services.game_service import GameService
-
-
-def get_game_service():
-    return GameService()
-
+from routers.helpers.helpers import get_game_service
 
 router = APIRouter(
     prefix="/games", tags=["games"], responses={404: {"description": "Not found"}}

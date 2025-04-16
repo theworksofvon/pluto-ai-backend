@@ -20,7 +20,7 @@ class Agent(BaseModel, ABC):
 
     Attributes:
         name (str): The name of the agent.
-        model (str): The model or version the agent is based on. Defaults to "openai-deepseek-reasoner".
+        model (str): The model or version the agent is based on. Defaults to "deepseek-chat".
         instructions (Union[str, Callable[[], str]]): A set of instructions defining the agent's role
             or behavior. Can be a static string or a callable that returns a string.
         tendencies (Optional[Personality]): A Tendency object to define traits and adjust 
@@ -36,7 +36,7 @@ class Agent(BaseModel, ABC):
     """
 
     name: str
-    model: str = "openai-deepseek-reasoner"
+    model: str = "deepseek-chat"
     instructions: Union[str, Callable[[], str]] = "You are a helpful assistant agent."
     tendencies: Optional[Tendencies] = None
     role: Roles = "crew"
@@ -105,12 +105,16 @@ class Agent(BaseModel, ABC):
         pass
 
     async def prompt(
-        self, message: str, sender: str = "user", format: Optional[Dict] = None
+        self,
+        message: str,
+        sender: str = "user",
+        format: Optional[Dict] = None,
+        web_search: bool = False,
     ):
         """Basic Prompt with default model, Communication layer opened to talk to this agent."""
         try:
             res = await self.communication_protocol.send_prompt(
-                message, sender=sender, format=format
+                message, sender=sender, format=format, web_search=web_search
             )
             return res
         except CommunicationsProtocolError as error:

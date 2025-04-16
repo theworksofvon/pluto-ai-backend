@@ -2,22 +2,16 @@ from fastapi import APIRouter, Depends, Body, Path, Query, HTTPException
 from adapters import Adapters
 from services.data_pipeline import DataProcessor
 from services.player_service import PlayerService
-from typing import Optional
+from typing import Optional, List
+from models.prediction_models import FormattedPrediction
+from routers.helpers.helpers import (
+    get_data_pipeline,
+    get_player_service,
+    get_adapters,
+)
 
 
 router = APIRouter(prefix="/players", tags=["players"])
-
-
-def get_data_pipeline():
-    return DataProcessor()
-
-
-def get_player_service():
-    return PlayerService(Adapters())
-
-
-def get_adapters():
-    return Adapters()
 
 
 @router.post("/update-player-stats")
@@ -50,18 +44,18 @@ async def get_player_predictions(
         "points", description="The type of prediction to get"
     ),
     service: PlayerService = Depends(get_player_service),
-):
+) -> List[FormattedPrediction]:
     """
     Get player predictions either by player names or by game date.
     If both are provided, game_date takes precedence.
     """
     if game_date:
         return await service.get_formatted_predictions_by_date(
-            game_date, prediction_type
+            game_date=game_date, prediction_type=prediction_type
         )
     elif player_names:
         return await service.get_formatted_predictions_by_players(
-            player_names, prediction_type
+            player_names=player_names, prediction_type=prediction_type
         )
     else:
         raise HTTPException(

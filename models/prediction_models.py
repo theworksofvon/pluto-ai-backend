@@ -1,6 +1,10 @@
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, Dict, Any, Union
 from datetime import datetime
+from models.prediction_context import Game
+from models.player_analysis_models import PlayerFormAnalysis
+from models.team_models import PrizepicksFactors, VegasFactors
+from models.prediction_context import ModelPrediction
 
 
 class PredictionRequest(BaseModel):
@@ -21,6 +25,8 @@ class PredictionValue(BaseModel):
     prizepicks_line: str
     prizepicks_reason: str
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class PredictionResponse(BaseModel):
     status: str
@@ -28,7 +34,31 @@ class PredictionResponse(BaseModel):
     prediction_type: str
     opposing_team: str
     timestamp: datetime
-    prediction: Optional[PredictionValue] = None
+    prediction: PredictionValue
+
+
+class PredictionRange(BaseModel):
+    low: float
+    high: float
+
+
+class FormattedPrediction(BaseModel):
+    name: str
+    team: str
+    opponent: str
+    gameDate: str
+    statLabel: str
+    displayStat: float
+    predictedStat: float
+    explanation: str
+    imageUrl: Optional[str] = None
+    confidence: float
+    range: PredictionRange
+    prizepicks_line: Optional[float] = None
+    prizepicks_reason: Optional[str] = None
+    prizepicks_prediction: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 # --- Game Prediction Models ---
@@ -75,3 +105,31 @@ class GamePredictionResponse(BaseModel):
     )
     timestamp: datetime = Field(default_factory=datetime.now)
     message: Optional[str] = None
+
+
+class PredictionData(BaseModel):
+    """Detailed prediction data for player performance."""
+
+    value: Optional[float] = None
+    range_low: Optional[float] = None
+    range_high: Optional[float] = None
+    confidence: float = 0.0
+    explanation: str = "No explanation provided"
+    prizepicks_line: Optional[str] = None
+    prizepicks_reason: Optional[str] = None
+
+
+class PlayerPredictionResponse(BaseModel):
+    """Complete player prediction response structure."""
+
+    status: str = "success"
+    player: str
+    game: Game
+    prediction_type: str
+    prediction: PredictionData
+    recent_form: Optional[PlayerFormAnalysis] = None
+    prizepicks_factors: Optional[PrizepicksFactors] = None
+    vegas_factors: Optional[VegasFactors] = None
+    timestamp: Optional[str] = None
+    model_prediction: Union[str, ModelPrediction] = "not available"
+    model_config = ConfigDict(from_attributes=True)

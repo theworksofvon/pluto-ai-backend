@@ -22,6 +22,11 @@ class Config(BaseSettings):
         default="",
     )
 
+    OPENAI_API_KEY_OAI: str = Field(
+        description="OpenAI API key",
+        default="",
+    )
+
     PLUTO_DATASET_FILE_NAME: str = Field(
         description="Path to the Pluto dataset",
         default="pluto_training_dataset_v1.csv",

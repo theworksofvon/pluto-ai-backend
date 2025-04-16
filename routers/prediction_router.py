@@ -11,10 +11,16 @@ from models import (
     GamePredictionResponse,
 )
 from agents import PlayerPredictionAgent, GamePredictionAgent
-from services.player_prediction import PlayerPredictionService
 from services.game_service import GameService
 from services.data_pipeline import DataProcessor
 from services.eval_service import EvaluationService
+from routers.helpers.helpers import (
+    get_player_prediction_agent,
+    get_game_prediction_agent,
+    get_game_service,
+    get_data_pipeline,
+    get_evaluation_service,
+)
 
 from logger import logger
 
@@ -23,30 +29,6 @@ router = APIRouter(
     tags=["predictions"],
     responses={404: {"description": "Not found"}},
 )
-
-
-def get_player_prediction_agent() -> PlayerPredictionAgent:
-    return PlayerPredictionAgent()
-
-
-def get_player_prediction_service() -> PlayerPredictionService:
-    return PlayerPredictionService()
-
-
-def get_game_prediction_agent() -> GamePredictionAgent:
-    return GamePredictionAgent()
-
-
-def get_game_service() -> GameService:
-    return GameService()
-
-
-def get_data_pipeline() -> DataProcessor:
-    return DataProcessor()
-
-
-def get_evaluation_service() -> EvaluationService:
-    return EvaluationService()
 
 
 @router.get("/all-predictions")
@@ -64,13 +46,12 @@ async def get_all_game_predictions(
 
 
 @router.post(
-    "/player/{prediction_type}/{prediction_version}",
+    "/player/{prediction_type}",
     response_model=PredictionResponse,
     status_code=status.HTTP_200_OK,
 )
 async def predict_player_performance(
     prediction_type: str = "points",
-    prediction_version: str = "v1",
     data: PredictionRequest = Body(...),
     agent: PlayerPredictionAgent = Depends(get_player_prediction_agent),
 ):
@@ -91,29 +72,27 @@ async def predict_player_performance(
             opposing_team=data.opposing_team,
             prediction_type=prediction_type,
             team=data.team,
-            game_id=data.game_id,
-            prediction_version=prediction_version,
             prizepicks_line=data.prizepicks_line,
         )
 
-        if prediction_data.get("status") == "error":
+        if prediction_data.status == "error":
             return PredictionResponse(
                 status="error",
                 player=data.player_name,
                 prediction_type=prediction_type,
                 opposing_team=data.opposing_team,
                 timestamp=datetime.now(),
-                message=prediction_data.get("message", "Prediction failed"),
+                message="Prediction failed",
             )
 
         prediction_value = PredictionValue(
-            value=prediction_data["prediction"]["value"],
-            range_low=prediction_data["prediction"]["range_low"],
-            range_high=prediction_data["prediction"]["range_high"],
-            confidence=prediction_data["prediction"]["confidence"],
-            explanation=prediction_data["prediction"]["explanation"],
-            prizepicks_line=prediction_data["prediction"]["prizepicks_line"],
-            prizepicks_reason=prediction_data["prediction"]["prizepicks_reason"],
+            value=prediction_data.prediction.value,
+            range_low=prediction_data.prediction.range_low,
+            range_high=prediction_data.prediction.range_high,
+            confidence=prediction_data.prediction.confidence,
+            explanation=prediction_data.prediction.explanation,
+            prizepicks_line=prediction_data.prediction.prizepicks_line,
+            prizepicks_reason=prediction_data.prediction.prizepicks_reason,
         )
 
         return PredictionResponse(
@@ -133,12 +112,11 @@ async def predict_player_performance(
 
 
 @router.post(
-    "/game/winner/{prediction_version}",
+    "/game/winner",
     response_model=GamePredictionResponse,
     status_code=status.HTTP_200_OK,
 )
 async def predict_game_winner(
-    prediction_version: str = "v2",
     data: GamePredictionRequest = Body(...),
     agent: GamePredictionAgent = Depends(get_game_prediction_agent),
 ):
@@ -158,7 +136,6 @@ async def predict_game_winner(
             home_team_abbr=data.home_team_abbr,
             away_team_abbr=data.away_team_abbr,
             game_id=data.game_id,
-            prediction_version=prediction_version,
         )
 
         if agent_result.get("status") != "success":
@@ -257,3 +234,16 @@ async def evaluate_predictions(
     except Exception as e:
         logger.error(f"Error evaluating predictions: {e}")
         raise HTTPException(status_code=500, detail=f"Evaluation error: {str(e)}")
+
+
+@router.get("/fill-actual-values")
+async def fill_actual_values(
+    service: EvaluationService = Depends(get_evaluation_service),
+):
+    try:
+        return await service.get_and_fill_actual_values()
+    except Exception as e:
+        logger.error(f"Error filling actual values: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Fill actual values error: {str(e)}"
+        )

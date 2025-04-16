@@ -1,11 +1,8 @@
 from fastapi import APIRouter, Depends
 from adapters import Adapters
+from routers.helpers.helpers import get_adapters
 
 router = APIRouter(prefix="/teams", tags=["teams"])
-
-
-def get_adapters():
-    return Adapters()
 
 
 @router.get("/{team_name}")
