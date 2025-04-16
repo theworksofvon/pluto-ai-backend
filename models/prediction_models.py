@@ -37,6 +37,30 @@ class PredictionResponse(BaseModel):
     prediction: PredictionValue
 
 
+class PredictionRange(BaseModel):
+    low: float
+    high: float
+
+
+class FormattedPrediction(BaseModel):
+    name: str
+    team: str
+    opponent: str
+    gameDate: str
+    statLabel: str
+    displayStat: float
+    predictedStat: float
+    explanation: str
+    imageUrl: Optional[str] = None
+    confidence: float
+    range: PredictionRange
+    prizepicks_line: Optional[float] = None
+    prizepicks_reason: Optional[str] = None
+    prizepicks_prediction: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 # --- Game Prediction Models ---
 
 

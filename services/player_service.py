@@ -2,6 +2,7 @@ from adapters import Adapters
 from typing import Dict, Any, Optional
 from logger import logger
 from connections import Connections
+from models.prediction_models import FormattedPrediction, PredictionRange
 
 
 class PlayerService:
@@ -62,7 +63,7 @@ class PlayerService:
 
     async def get_formatted_predictions_by_date(
         self, game_date: str, prediction_type: str
-    ) -> list[Dict[str, Any]]:
+    ) -> list[FormattedPrediction]:
         """
         Get all predictions for a specific date in the format required by the frontend.
 
@@ -92,24 +93,27 @@ class PlayerService:
                     player_name=prediction["player_name"]
                 )
 
-                formatted_prediction = {
-                    "name": prediction["player_name"],
-                    "team": prediction["team"],
-                    "opponent": prediction["opposing_team"],
-                    "gameDate": prediction.get("game_date", "TBD"),
-                    "statLabel": prediction["prediction_type"].capitalize(),
-                    "displayStat": prediction["predicted_value"],
-                    "predictedStat": prediction["predicted_value"],
-                    "imageUrl": image_url,
-                    "confidence": prediction["confidence"],
-                    "range": {
-                        "low": prediction["range_low"],
-                        "high": prediction["range_high"],
-                    },
-                }
+                formatted_prediction = FormattedPrediction(
+                    name=prediction["player_name"],
+                    team=prediction["team"],
+                    opponent=prediction["opposing_team"],
+                    gameDate=prediction.get("game_date", "TBD"),
+                    statLabel=prediction["prediction_type"].capitalize(),
+                    displayStat=prediction["predicted_value"],
+                    explanation=prediction["explanation"],
+                    predictedStat=prediction["predicted_value"],
+                    imageUrl=image_url,
+                    confidence=prediction["confidence"],
+                    range=PredictionRange(
+                        low=prediction["range_low"],
+                        high=prediction["range_high"],
+                    ),
+                    prizepicks_line=prediction["prizepicks_line"],
+                    prizepicks_reason=prediction["prizepicks_reason"],
+                    prizepicks_prediction=prediction["prizepicks_prediction"],
+                )
 
                 formatted_predictions.append(formatted_prediction)
-
             return formatted_predictions
 
         except Exception as e:
@@ -118,7 +122,7 @@ class PlayerService:
 
     async def get_formatted_predictions_by_players(
         self, player_names: list[str], prediction_type: str
-    ) -> list[Dict[str, Any]]:
+    ) -> list[FormattedPrediction]:
         """
         Get predictions for specific players in the format required by the frontend.
 
@@ -140,20 +144,22 @@ class PlayerService:
                     nba = self.adapters.nba_analytics
                     image_url = await nba.get_player_image(player_name=player_name)
 
-                    formatted_prediction = {
-                        "name": prediction["player_name"],
-                        "team": prediction["team"],
-                        "opponent": prediction["opposing_team"],
-                        "gameDate": prediction.get("game_date", "TBD"),
-                        "statLabel": prediction["prediction_type"].capitalize(),
-                        "predictedStat": prediction["predicted_value"],
-                        "imageUrl": image_url,
-                        "confidence": prediction["confidence"],
-                        "range": {
-                            "low": prediction["range_low"],
-                            "high": prediction["range_high"],
-                        },
-                    }
+                    formatted_prediction = FormattedPrediction(
+                        name=prediction["player_name"],
+                        team=prediction["team"],
+                        opponent=prediction["opposing_team"],
+                        gameDate=prediction.get("game_date", "TBD"),
+                        statLabel=prediction["prediction_type"].capitalize(),
+                        predictedStat=prediction["predicted_value"],
+                        imageUrl=image_url,
+                        confidence=prediction["confidence"],
+                        range=PredictionRange(
+                            low=prediction["range_low"],
+                            high=prediction["range_high"],
+                        ),
+                        prizepicks_line=prediction["prizepicks_line"],
+                        prizepicks_reason=prediction["prizepicks_reason"],
+                    )
 
                     formatted_predictions.append(formatted_prediction)
 

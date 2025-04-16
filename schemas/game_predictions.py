@@ -12,6 +12,8 @@ class GamePredictionCreate(BaseModel):
     home_team_win_percentage: float
     opposing_team_win_percentage: float
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class GamePredictionRead(BaseModel):
     prediction_id: int
@@ -23,7 +25,7 @@ class GamePredictionRead(BaseModel):
     opposing_team_win_percentage: float
     timestamp: datetime
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, from_attributes=True)
 
 
 class PlayerPredictionCreate(BaseModel):
