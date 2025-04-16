@@ -46,13 +46,12 @@ async def get_all_game_predictions(
 
 
 @router.post(
-    "/player/{prediction_type}/{prediction_version}",
+    "/player/{prediction_type}",
     response_model=PredictionResponse,
     status_code=status.HTTP_200_OK,
 )
 async def predict_player_performance(
     prediction_type: str = "points",
-    prediction_version: str = "v1",
     data: PredictionRequest = Body(...),
     agent: PlayerPredictionAgent = Depends(get_player_prediction_agent),
 ):
@@ -74,7 +73,6 @@ async def predict_player_performance(
             prediction_type=prediction_type,
             team=data.team,
             game_id=data.game_id,
-            prediction_version=prediction_version,
             prizepicks_line=data.prizepicks_line,
         )
 
@@ -115,12 +113,11 @@ async def predict_player_performance(
 
 
 @router.post(
-    "/game/winner/{prediction_version}",
+    "/game/winner",
     response_model=GamePredictionResponse,
     status_code=status.HTTP_200_OK,
 )
 async def predict_game_winner(
-    prediction_version: str = "v2",
     data: GamePredictionRequest = Body(...),
     agent: GamePredictionAgent = Depends(get_game_prediction_agent),
 ):
@@ -140,7 +137,6 @@ async def predict_game_winner(
             home_team_abbr=data.home_team_abbr,
             away_team_abbr=data.away_team_abbr,
             game_id=data.game_id,
-            prediction_version=prediction_version,
         )
 
         if agent_result.get("status") != "success":

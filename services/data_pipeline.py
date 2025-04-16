@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import asyncio
 from typing import Optional, List, Dict
 from logger import logger
+from models.data_pipeline_models import DataPipelineLatestData
 
 
 class DataProcessor:
@@ -138,7 +139,7 @@ class DataProcessor:
 
     async def get_latest_data(
         self, player_name: Optional[str] = None, team_name: Optional[str] = None
-    ) -> Dict[str, pd.DataFrame]:
+    ) -> DataPipelineLatestData:
         """
         Retrieve the latest combined data for predictions.
 
@@ -178,4 +179,4 @@ class DataProcessor:
 
         odds_data = pd.read_csv(self.odds_file, parse_dates=["fetch_date"])
 
-        return {"player_stats": player_stats, "odds_data": odds_data}
+        return DataPipelineLatestData(player_stats=player_stats, odds_data=odds_data)

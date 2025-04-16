@@ -13,10 +13,10 @@ from nba_api.stats.endpoints import (
 from nba_api.live.nba.endpoints import scoreboard
 from datetime import datetime, date
 from logger import logger
-from agents.helpers.team_helpers import get_team_abbr_from_name
+from agents.helpers.team_helpers import get_team_abbr_from_name, get_team_name_from_id
 
 import pandas as pd
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import asyncio
 from .interface import NbaAnalyticsInterface
 
@@ -377,3 +377,42 @@ class NbaAnalyticsPipeline(NbaAnalyticsInterface):
                 exc_info=True,
             )
             return None
+
+    async def get_game_players(self, games: List[Dict]) -> List[Tuple[str, str, str]]:
+        """
+        Get all players from today's games.
+        Returns a list of tuples containing (player_name, team, opposing_team).
+        """
+        players = []
+        try:
+            for game in games:
+                home_team_id = str(game.get("HOME_TEAM_ID"))
+                away_team_id = str(game.get("VISITOR_TEAM_ID"))
+
+                if not home_team_id or not away_team_id:
+                    logger.warning(f"Skipping game due to missing team IDs: {game}")
+                    continue
+
+                home_team_name = get_team_name_from_id(home_team_id)
+                away_team_name = get_team_name_from_id(away_team_id)
+
+                if not home_team_name or not away_team_name:
+                    logger.warning(f"Skipping game due to missing team names: {game}")
+                    continue
+                home_players = await self.get_starting_lineup(home_team_name)
+                away_players = await self.get_starting_lineup(away_team_name)
+
+                for player in home_players:
+                    players.append(
+                        (player.get("player_name"), home_team_name, away_team_name)
+                    )
+
+                for player in away_players:
+                    players.append(
+                        (player.get("player_name"), away_team_name, home_team_name)
+                    )
+
+            return players
+        except Exception as e:
+            logger.error(f"Error getting players: {e}")
+            return []

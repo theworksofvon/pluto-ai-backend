@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import pandas as pd
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 from datetime import date
 
 
@@ -180,5 +180,13 @@ class NbaAnalyticsInterface(ABC):
     ) -> float:
         """
         Get the actual stats for a player on a given date.
+        """
+        pass
+
+    @abstractmethod
+    async def get_game_players(self, games: List[Dict]) -> List[Tuple[str, str, str]]:
+        """
+        Get all players from today's games.
+        Returns a list of tuples containing (player_name, team, opposing_team).
         """
         pass

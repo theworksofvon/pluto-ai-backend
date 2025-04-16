@@ -2,14 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from services.odds_service import OddsService, GameOdds
 from logger import logger
+from routers.helpers.helpers import get_odds_service
 
 router = APIRouter(
     prefix="/odds", tags=["odds"], responses={404: {"description": "Not found"}}
 )
-
-
-def get_odds_service():
-    return OddsService()
 
 
 @router.get("/today/{team}", response_model=List[GameOdds])

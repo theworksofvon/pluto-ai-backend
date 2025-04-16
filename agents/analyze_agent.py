@@ -4,6 +4,9 @@ from typing import Dict, Any
 import json
 from logger import logger
 from utils.schema_json_parser import SchemaJsonParser, FieldSchema, FieldType
+from agents.helpers.personalities import ANALYZE_AGENT_PERSONALITY
+from models.prediction_models import PlayerPredictionResponse
+from models.prediction_context import PredictionContext
 
 
 class AnalyzeAgent(Agent):
@@ -95,15 +98,15 @@ class AnalyzeAgent(Agent):
                 "3. Compare your independent analysis with the primary agent's prediction.\n"
                 "4. Provide a final report summarizing your findings, highlighting agreements, disagreements, confidence levels, and any potential overlooked factors."
             ),
-            tendencies=analyze_agent_tendencies,
+            tendencies=ANALYZE_AGENT_PERSONALITY,
             model="openai-gpt-4.1",
             **kwargs,
         )
 
     async def execute_task(
         self,
-        original_context: Dict[str, Any],
-        primary_agent_output: Dict[str, Any],
+        original_context: PredictionContext,
+        primary_agent_output: PlayerPredictionResponse,
         **kwargs,
     ) -> Dict[str, Any]:
         """
@@ -191,32 +194,3 @@ class AnalyzeAgent(Agent):
                 "message": "Failed to parse analysis response from LLM.",
                 "raw_response": response_str,
             }
-
-
-analyze_agent_tendencies = Tendencies(
-    **{
-        "emotions": {"emotional_responsiveness": 0.1, "empathy_level": 0.2},
-        "passiveness": 0.2,
-        "risk_tolerance": 0.5,
-        "patience_level": 0.8,
-        "decision_making": "analytical",
-        "core_values": [
-            "objectivity",
-            "critical thinking",
-            "data integrity",
-            "thoroughness",
-            "constructive feedback",
-        ],
-        "goals": [
-            "verify the accuracy and reasoning of primary predictions",
-            "identify potential biases or errors in the primary analysis",
-            "provide a reliable second opinion based purely on data",
-            "enhance overall prediction quality through review",
-        ],
-        "fears": [
-            "missing a critical flaw in the primary prediction",
-            "introducing own bias during the review",
-            "providing superficial analysis",
-        ],
-    }
-)
