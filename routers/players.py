@@ -3,21 +3,14 @@ from adapters import Adapters
 from services.data_pipeline import DataProcessor
 from services.player_service import PlayerService
 from typing import Optional
+from routers.helpers.helpers import (
+    get_data_pipeline,
+    get_player_service,
+    get_adapters,
+)
 
 
 router = APIRouter(prefix="/players", tags=["players"])
-
-
-def get_data_pipeline():
-    return DataProcessor()
-
-
-def get_player_service():
-    return PlayerService(Adapters())
-
-
-def get_adapters():
-    return Adapters()
 
 
 @router.post("/update-player-stats")

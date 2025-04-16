@@ -8,6 +8,7 @@ from adapters.scheduler import AbstractScheduler
 from logger import logger
 from datetime import datetime
 import json
+from utils import FieldSchema, FieldType, SchemaJsonParser
 from agents.helpers.prediction_helpers import (
     parse_prediction_response,
     DEFAULT_PLAYER_PREDICTION,
@@ -45,6 +46,8 @@ class PlayerPredictionAgent(Agent):
     adapters: Optional[Dict] = None
     uow: Optional[AbstractUnitOfWork] = None
     scheduler: Optional[AbstractScheduler] = None
+    player_prediction_schema: List[FieldSchema] = []
+    parser: SchemaJsonParser = None
 
     def __init__(self, **kwargs):
         super().__init__(
@@ -97,6 +100,18 @@ When presenting predictions, provide clear and detailed explanations of your ana
         self.adapters: Adapters = Adapters()
         self.uow = self.adapters.uow
         self.scheduler = self.adapters.scheduler
+        self.player_prediction_schema = [
+            FieldSchema(name="value", type=FieldType.NUMBER, required=True),
+            FieldSchema(name="range_low", type=FieldType.NUMBER, required=False),
+            FieldSchema(name="range_high", type=FieldType.NUMBER, required=False),
+            FieldSchema(name="confidence", type=FieldType.NUMBER, required=True),
+            FieldSchema(name="explanation", type=FieldType.STRING, required=True),
+            FieldSchema(name="prizepicks_line", type=FieldType.STRING, required=False),
+            FieldSchema(
+                name="prizepicks_reason", type=FieldType.STRING, required=False
+            ),
+        ]
+        self.parser = SchemaJsonParser(self.player_prediction_schema)
 
     async def execute_task(self, **kwargs):
         """
@@ -105,7 +120,6 @@ When presenting predictions, provide clear and detailed explanations of your ana
         """
         logger.info("Player prediction agent is ready for player predictions")
 
-        # Schedule daily predictions
         self.scheduler.add_daily_job(
             func=self._run_daily_predictions,
             hour=9,
@@ -113,7 +127,6 @@ When presenting predictions, provide clear and detailed explanations of your ana
             job_id="daily_player_predictions",
         )
 
-        # Start the scheduler
         self.scheduler.start()
         logger.info("Scheduled predictions to run every day at 9:30 AM")
 
@@ -252,7 +265,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
         logger.info(f"Agent Prediction response: {prediction_response}")
 
         try:
-            prediction_data = parse_prediction_response(prediction_response)
+            prediction_data = self.parser.parse(prediction_response)
             async with self.uow as uow:
                 logger.info(
                     f"Saving player prediction for {player_name} vs {opposing_team}"
@@ -451,7 +464,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
         ```
         """
         logger.info(f"Prediction prompt: {prompt}")
-        response = await self.prompt(prompt)
+        response = await self.prompt(prompt, web_search=True)
         logger.info(
             f"Prediction response for player {player_name} on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {response}"
         )
@@ -508,7 +521,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
         )
 
         logger.info(f"Prediction prompt: {prompt}")
-        response = await self.prompt(prompt)
+        response = await self.prompt(prompt, web_search=True)
         logger.info(
             f"Prediction response for player {player_name} on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {response}"
         )

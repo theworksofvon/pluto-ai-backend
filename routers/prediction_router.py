@@ -11,10 +11,16 @@ from models import (
     GamePredictionResponse,
 )
 from agents import PlayerPredictionAgent, GamePredictionAgent
-from services.player_prediction import PlayerPredictionService
 from services.game_service import GameService
 from services.data_pipeline import DataProcessor
 from services.eval_service import EvaluationService
+from routers.helpers.helpers import (
+    get_player_prediction_agent,
+    get_game_prediction_agent,
+    get_game_service,
+    get_data_pipeline,
+    get_evaluation_service,
+)
 
 from logger import logger
 
@@ -23,30 +29,6 @@ router = APIRouter(
     tags=["predictions"],
     responses={404: {"description": "Not found"}},
 )
-
-
-def get_player_prediction_agent() -> PlayerPredictionAgent:
-    return PlayerPredictionAgent()
-
-
-def get_player_prediction_service() -> PlayerPredictionService:
-    return PlayerPredictionService()
-
-
-def get_game_prediction_agent() -> GamePredictionAgent:
-    return GamePredictionAgent()
-
-
-def get_game_service() -> GameService:
-    return GameService()
-
-
-def get_data_pipeline() -> DataProcessor:
-    return DataProcessor()
-
-
-def get_evaluation_service() -> EvaluationService:
-    return EvaluationService()
 
 
 @router.get("/all-predictions")

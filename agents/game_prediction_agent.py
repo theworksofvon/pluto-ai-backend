@@ -10,13 +10,10 @@ from datetime import datetime
 import json
 import numpy as np
 import traceback
-from agents.helpers.prediction_helpers import (
-    parse_prediction_response,
-    DEFAULT_GAME_PREDICTION,
-)
 from agents.helpers.team_helpers import get_team_abbr_from_id, get_team_name_from_abbr
-from schemas import GamePredictionCreate, PredictionType
+from schemas import GamePredictionCreate
 import pandas as pd
+from utils import FieldSchema, FieldType, SchemaJsonParser
 
 
 class GamePredictionAgent(Agent):
@@ -29,6 +26,8 @@ class GamePredictionAgent(Agent):
     adapters: Optional[Dict] = None
     uow: Optional[AbstractUnitOfWork] = None
     scheduler: Optional[AbstractScheduler] = None
+    game_prediction_schema: List[FieldSchema] = []
+    parser: SchemaJsonParser = None
 
     def __init__(self, **kwargs):
         super().__init__(
@@ -79,6 +78,24 @@ When presenting predictions, provide clear and detailed explanations of your ana
         self.adapters: Adapters = Adapters()
         self.uow = self.adapters.uow
         self.scheduler = self.adapters.scheduler
+        self.game_prediction_schema = [
+            FieldSchema(name="value", type=FieldType.STRING, required=True),
+            FieldSchema(name="confidence", type=FieldType.NUMBER, required=True),
+            FieldSchema(
+                name="home_team_win_percentage", type=FieldType.NUMBER, required=True
+            ),
+            FieldSchema(
+                name="opposing_team_win_percentage",
+                type=FieldType.NUMBER,
+                required=True,
+            ),
+            FieldSchema(name="explanation", type=FieldType.STRING, required=True),
+            FieldSchema(name="prizepicks_line", type=FieldType.STRING, required=False),
+            FieldSchema(
+                name="prizepicks_reason", type=FieldType.STRING, required=False
+            ),
+        ]
+        self.parser = SchemaJsonParser(self.game_prediction_schema)
 
     async def execute_task(self, **kwargs):
         """
@@ -209,9 +226,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
         prediction_data = {}
         home_win_pct, away_win_pct = None, None
         try:
-            prediction_data = parse_prediction_response(
-                prediction_response, is_game_prediction=True
-            )
+            prediction_data = self.parser.parse(prediction_response)
             logger.info(f"Prediction data: {prediction_data}")
 
             home_win_pct_raw = prediction_data.get("home_team_win_percentage")
@@ -417,7 +432,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
         Note: home_team_win_percentage + opposing_team_win_percentage should ideally sum to 1.0.
         """
         logger.info(f"Prediction prompt (V1):\n{prompt}")
-        response = await self.prompt(prompt)
+        response = await self.prompt(prompt, web_search=True)
         logger.info(
             f"Prediction response for {home_team_abbr} vs {away_team_abbr} on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {response}"
         )
@@ -522,7 +537,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
             "5. Game context and motivational factors"
         )
 
-        response = await self.prompt(prompt)
+        response = await self.prompt(prompt, web_search=True)
         logger.info(f"Prediction response (V2): {response}...")
         logger.info(
             f"Prediction response for {home_team_abbr} vs {away_team_abbr} on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {response}"

@@ -26,7 +26,8 @@ class CommunicationProtocol:
         """
         self.model = model.lower()
         self.config = config
-        self.default_open_ai_model = "deepseek-chat"
+        self.default_open_ai_model = "gpt-4.1"
+        self.default_deepseek_model = "deepseek-chat"
         self.personality = personality  # Personality of the agent
         self.history: List[Dict[str, str]] = (
             []
@@ -40,7 +41,11 @@ class CommunicationProtocol:
 
     ## TODO: ollama to respond in json
     async def send_prompt(
-        self, prompt: str, sender: str, format: Optional[Dict] = None
+        self,
+        prompt: str,
+        sender: str,
+        format: Optional[Dict] = None,
+        web_search: bool = False,
     ) -> str:
         """
         Send a prompt to the model, including personality and history, and return the response.
@@ -52,10 +57,16 @@ class CommunicationProtocol:
         Returns:
             str: The model's response.
         """
+
+        if web_search and not self.model.startswith("openai"):
+            raise ValueError("Web search is not supported for this model.")
+
         full_prompt = self._build_prompt(prompt, sender)
 
         if self.model.startswith("openai"):
-            response = await self._send_to_openai(full_prompt, format)
+            response = await self._send_to_openai(full_prompt, format, web_search)
+        elif self.model.startswith("deepseek"):
+            response = await self._send_to_deepseek(full_prompt, format)
         else:
             response = await self._send_to_ollama(full_prompt, format)
         try:
@@ -66,7 +77,6 @@ class CommunicationProtocol:
             raise CommunicationsProtocolError(error_message, status_code=400)
         return response
 
-    # TODO: Maximine use of 128k token context window, better prompt building
     def _build_prompt(self, prompt: str, sender: str) -> str:
         """
         Combine personality, context, and the new prompt into a full query.
@@ -79,7 +89,7 @@ class CommunicationProtocol:
         """
         context = "\n".join(
             [f"{item['role']}: {item['content']}" for item in self.history[-5:]]
-        )  # Last 5 interactions
+        )
         return f"{self.personality}\n\n{context}\n\nUser - {sender}: {prompt}"
 
     async def _send_to_ollama(self, prompt: str, format: Optional[Dict] = None) -> str:
@@ -113,7 +123,9 @@ class CommunicationProtocol:
                 print(error_message)
                 raise CommunicationsProtocolError(error_message, status_code=400)
 
-    async def _send_to_openai(self, prompt: str, format: Optional[Dict] = None) -> str:
+    async def _send_to_openai(
+        self, prompt: str, format: Optional[Dict] = None, web_search: bool = False
+    ) -> str:
         """
         Handle communication with a remote OpenAI model.
 
@@ -123,24 +135,59 @@ class CommunicationProtocol:
         Returns:
             str: The model's response.
         """
-        api_key = self.config.OPENAI_API_KEY or os.getenv("OPENAI_API_KEY")
+        api_key = self.config.OPENAI_API_KEY_OAI or os.getenv("OPENAI_API_KEY_OAI")
         if not api_key:
             raise ValueError("OpenAI API key is missing.")
-        client = OpenAI(base_url="https://api.deepseek.com/v1", api_key=api_key)
+        client = OpenAI(base_url="https://api.openai.com/v1", api_key=api_key)
 
         try:
-            completion = client.chat.completions.create(
+            response = client.responses.create(
                 model=self.default_open_ai_model,
-                messages=[{"role": "user", "content": f"{prompt}"}],
-                stream=False,
+                input=prompt,
+                tools=(
+                    [{"type": "function", "function": {"name": "web_search"}}]
+                    if web_search
+                    else None
+                ),
             )
-            return completion.choices[0].message.content
+            return response.output[1].content[0].text
         except Exception as error:
             error_message = (
                 f"Error communicating with OpenAI model: {self.model}, error: {error}"
             )
             print(error_message)
             raise CommunicationsProtocolError(error_message, status_code=400)
+
+    async def _send_to_deepseek(
+        self, prompt: str, format: Optional[Dict] = None
+    ) -> str:
+        """
+        Handle communication with a remote DeepSeek model.
+
+        Args:
+            prompt (str): The input prompt for the model.
+            format (Dict) type: The response format for the model. Defaults to json_object.
+        Returns:
+            str: The model's response.
+        """
+        api_key = self.config.OPENAI_API_KEY or os.getenv("DEEPSEEK_API_KEY")
+        if not api_key:
+            raise ValueError("DeepSeek API key is missing.")
+
+        client = OpenAI(base_url="https://api.deepseek.com/v1", api_key=api_key)
+
+        try:
+            completion = client.chat.completions.create(
+                model=self.default_deepseek_model,
+                messages=[{"role": "user", "content": f"{prompt}"}],
+                stream=False,
+            )
+            return completion.choices[0].message.content
+        except Exception as error:
+            error_message = (
+                f"Error communicating with DeepSeek model: {self.model}, error: {error}"
+            )
+            print(error_message)
 
     def _update_history(self, role: str, content: str) -> None:
         """
