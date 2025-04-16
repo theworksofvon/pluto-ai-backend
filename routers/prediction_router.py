@@ -72,28 +72,27 @@ async def predict_player_performance(
             opposing_team=data.opposing_team,
             prediction_type=prediction_type,
             team=data.team,
-            game_id=data.game_id,
             prizepicks_line=data.prizepicks_line,
         )
 
-        if prediction_data.get("status") == "error":
+        if prediction_data.status == "error":
             return PredictionResponse(
                 status="error",
                 player=data.player_name,
                 prediction_type=prediction_type,
                 opposing_team=data.opposing_team,
                 timestamp=datetime.now(),
-                message=prediction_data.get("message", "Prediction failed"),
+                message="Prediction failed",
             )
 
         prediction_value = PredictionValue(
-            value=prediction_data["prediction"]["value"],
-            range_low=prediction_data["prediction"]["range_low"],
-            range_high=prediction_data["prediction"]["range_high"],
-            confidence=prediction_data["prediction"]["confidence"],
-            explanation=prediction_data["prediction"]["explanation"],
-            prizepicks_line=prediction_data["prediction"]["prizepicks_line"],
-            prizepicks_reason=prediction_data["prediction"]["prizepicks_reason"],
+            value=prediction_data.prediction.value,
+            range_low=prediction_data.prediction.range_low,
+            range_high=prediction_data.prediction.range_high,
+            confidence=prediction_data.prediction.confidence,
+            explanation=prediction_data.prediction.explanation,
+            prizepicks_line=prediction_data.prediction.prizepicks_line,
+            prizepicks_reason=prediction_data.prediction.prizepicks_reason,
         )
 
         return PredictionResponse(

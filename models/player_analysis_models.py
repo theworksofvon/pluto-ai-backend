@@ -1,5 +1,5 @@
 from typing import List, Optional, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 import numpy as np
 
 
@@ -16,10 +16,7 @@ class PlayerFormAnalysis(BaseModel):
     games_analyzed: int = 0
     std_deviation: Optional[float] = None
 
-    class Config:
-        """Configuration for the model."""
-
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @classmethod
     def from_stats(cls, player_stats, stat_column: str):

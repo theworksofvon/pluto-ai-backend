@@ -20,7 +20,7 @@ class Agent(BaseModel, ABC):
 
     Attributes:
         name (str): The name of the agent.
-        model (str): The model or version the agent is based on. Defaults to "openai-deepseek-reasoner".
+        model (str): The model or version the agent is based on. Defaults to "deepseek-chat".
         instructions (Union[str, Callable[[], str]]): A set of instructions defining the agent's role
             or behavior. Can be a static string or a callable that returns a string.
         tendencies (Optional[Personality]): A Tendency object to define traits and adjust 

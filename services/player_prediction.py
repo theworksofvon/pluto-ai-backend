@@ -76,7 +76,6 @@ class PlayerPredictionService:
         player_name: str,
         opposing_team: str,
         prediction_type: str = "points",
-        game_id: Optional[str] = None,
         model_type: Optional[str] = "points",
     ) -> PredictionContext:
         """
@@ -86,7 +85,6 @@ class PlayerPredictionService:
             player_name: Name of the player to predict
             opposing_team: The opposing team name
             prediction_type: Type of prediction (points, rebounds, assists, etc.)
-            game_id: Specific game ID if available
 
         Returns:
             Dict containing all relevant data for making a prediction
@@ -106,19 +104,18 @@ class PlayerPredictionService:
                 status="error",
                 message=message,
                 player=player_name,
-                game=Game(opposing_team=opposing_team, game_id=game_id),
+                game=Game(
+                    opposing_team=opposing_team,
+                    game_date=datetime.now().date().isoformat(),
+                ),
                 prediction_type=prediction_type,
             )
 
         recent_form = self._analyze_player_form(player_stats, prediction_type)
 
-        vegas_factors = self._extract_vegas_factors(
-            odds_data, player_name, opposing_team
-        )
+        vegas_factors = self._extract_vegas_factors(odds_data, opposing_team)
 
-        prizepicks_factors = await self._extract_prizepicks_factors(
-            player_name, opposing_team
-        )
+        prizepicks_factors = await self._extract_prizepicks_factors(player_name)
 
         team_matchup = self._analyze_team_matchup(
             player_stats, prediction_type, opposing_team
@@ -171,7 +168,9 @@ class PlayerPredictionService:
         return PredictionContext(
             status="success",
             player=player_name,
-            game=Game(opposing_team=opposing_team, game_id=game_id),
+            game=Game(
+                opposing_team=opposing_team, game_date=datetime.now().date().isoformat()
+            ),
             prediction_type=prediction_type,
             recent_form=recent_form,
             vegas_factors=vegas_factors,

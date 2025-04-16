@@ -14,21 +14,29 @@ from schemas import PlayerPredictionCreate, PredictionType
 import numpy as np
 import pandas as pd
 from models.prediction_models import PlayerPredictionResponse, Game, PredictionData
+from models.prediction_context import PredictionContext
+
+import numpy as np
+import pandas as pd
+import json
+from pydantic import BaseModel as PydanticBaseModel
 
 
 def convert_numpy_types(obj):
-    """Convert NumPy types to native Python types for JSON serialization."""
+    """Convert NumPy and Pydantic types to native Python types for JSON serialization."""
+    if hasattr(obj, "model_dump"):
+        return convert_numpy_types(obj.model_dump())
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
+    if isinstance(obj, np.floating):
         return float(obj)
-    elif isinstance(obj, np.ndarray):
+    if isinstance(obj, np.ndarray):
         return obj.tolist()
-    elif isinstance(obj, pd.Timestamp):
+    if isinstance(obj, pd.Timestamp):
         return obj.isoformat()
-    elif isinstance(obj, dict):
+    if isinstance(obj, dict):
         return {key: convert_numpy_types(value) for key, value in obj.items()}
-    elif isinstance(obj, list):
+    if isinstance(obj, list):
         return [convert_numpy_types(item) for item in obj]
     return obj
 
@@ -90,7 +98,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
             """,
             tendencies=PLAYER_PREDICTION_PERSONALITY,
             role="pilot",
-            model="openai-deepseek-reasoner",
+            model="openai-gpt-4o-mini",
             **kwargs,
         )
         self.prediction_service = PlayerPredictionService()
@@ -181,9 +189,8 @@ When presenting predictions, provide clear and detailed explanations of your ana
         opposing_team: str,
         prediction_type: str = "points",
         team: Optional[str] = None,
-        game_id: Optional[str] = None,
         prizepicks_line: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> PlayerPredictionResponse:
         """
         Predict a player's performance using an agent.
 
@@ -191,7 +198,6 @@ When presenting predictions, provide clear and detailed explanations of your ana
             player_name: Name of the player.
             opposing_team: Name of opposing team.
             prediction_type: Type of prediction (points, rebounds, assists, etc.).
-            game_id: Optional game ID.
 
         Returns:
             A dictionary with prediction results.
@@ -200,12 +206,11 @@ When presenting predictions, provide clear and detailed explanations of your ana
             player_name=player_name,
             opposing_team=opposing_team,
             prediction_type=prediction_type,
-            game_id=game_id,
             model_type=prediction_type,
         )
         logger.info(f"Agent Context: {context}")
 
-        if context.get("status") == "error":
+        if context.status == "error":
             return context
 
         prediction_response = await self._generate_prediction(context, prizepicks_line)
@@ -217,23 +222,24 @@ When presenting predictions, provide clear and detailed explanations of your ana
                 logger.info(
                     f"Saving player prediction for {player_name} vs {opposing_team}"
                 )
-                await uow.player_predictions.add(
-                    PlayerPredictionCreate(
-                        game_date=context.get("game_date", datetime.now().date()),
-                        player_name=player_name,
-                        team=team or "",
-                        opposing_team=opposing_team,
-                        prediction_type=PredictionType(prediction_type.lower()),
-                        predicted_value=prediction_data["value"],
-                        range_low=prediction_data["range_low"],
-                        range_high=prediction_data["range_high"],
-                        confidence=prediction_data["confidence"],
-                        explanation=prediction_data["explanation"],
-                        prizepicks_prediction=prediction_data["prizepicks_line"],
-                        prizepicks_reason=prediction_data["prizepicks_reason"],
-                        prizepicks_line=float(prizepicks_line),
+                if prediction_response is not None:
+                    await uow.player_predictions.add(
+                        PlayerPredictionCreate(
+                            game_date=context.game.game_date,
+                            player_name=player_name,
+                            team=team or "",
+                            opposing_team=opposing_team,
+                            prediction_type=PredictionType(prediction_type.lower()),
+                            predicted_value=prediction_data["value"],
+                            range_low=prediction_data["range_low"],
+                            range_high=prediction_data["range_high"],
+                            confidence=prediction_data["confidence"],
+                            explanation=prediction_data["explanation"],
+                            prizepicks_prediction=prediction_data["prizepicks_line"],
+                            prizepicks_reason=prediction_data["prizepicks_reason"],
+                            prizepicks_line=float(prizepicks_line),
+                        )
                     )
-                )
                 await uow.commit()
                 logger.info(
                     f"Player prediction saved for {player_name} vs {opposing_team}"
@@ -245,18 +251,18 @@ When presenting predictions, provide clear and detailed explanations of your ana
         return PlayerPredictionResponse(
             status="success",
             player=player_name,
-            game=Game(opposing_team=opposing_team, game_id=game_id),
+            game=Game(opposing_team=opposing_team, game_date=context.game.game_date),
             prediction_type=prediction_type,
             prediction=PredictionData(**prediction_data),
-            recent_form=context.get("recent_form"),
-            prizepicks_factors=context.get("prizepicks_factors"),
-            vegas_factors=context.get("vegas_factors"),
-            timestamp=context.get("timestamp"),
-            model_prediction=context.get("model_prediction", "not available"),
+            recent_form=context.recent_form,
+            prizepicks_factors=context.prizepicks_factors,
+            vegas_factors=context.vegas_factors,
+            timestamp=context.timestamp,
+            model_prediction=context.model_prediction,
         )
 
     async def _generate_prediction(
-        self, context: Dict[str, Any], prizepicks_line: str
+        self, context: PredictionContext, prizepicks_line: str
     ) -> str:
         """
         Generate a prediction using the LLM based on the prepared context.
@@ -267,9 +273,9 @@ When presenting predictions, provide clear and detailed explanations of your ana
         Returns:
             String response from LLM with prediction data
         """
-        player_name = context.get("player", "Unknown Player")
-        prediction_type = context.get("prediction_type", "points")
-        opposing_team = context.get("game", {}).get("opposing_team", "Unknown Team")
+        player_name = context.player
+        prediction_type = context.prediction_type
+        opposing_team = context.game.opposing_team
         # Convert NumPy types before JSON serialization
         safe_context = json.dumps(convert_numpy_types(context)).replace("'", "")
 

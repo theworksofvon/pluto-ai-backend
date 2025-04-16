@@ -133,7 +133,9 @@ class SchemaJsonParser:
         name_pattern = rf"[\"']{field_name}[\"']\s*:\s*"
 
         if field_type == FieldType.STRING:
-            value_pattern = r"[\"']([^\"']*?)[\"]"
+            # capture everything (including newlines, commas, apostrophes)
+            # non‑greedy up to the next closing quote
+            value_pattern = r"\"([\s\S]+?)\""
         elif field_type == FieldType.NUMBER:
             value_pattern = r"([0-9.]+)"
         elif field_type == FieldType.BOOLEAN:
@@ -217,7 +219,6 @@ class SchemaJsonParser:
         for field in self.schema:
             if result[field.name] is not None or field.required:
                 final_result[field.name] = result[field.name]
-
         return final_result
 
     def _normalize_json_string(self, json_str: str) -> str:
@@ -315,4 +316,5 @@ class SchemaJsonParser:
             logger.error("All parsing strategies failed. Using default value.")
             return self.default_value
 
+        logger.info(f"Result after parsing: {result}")
         return result

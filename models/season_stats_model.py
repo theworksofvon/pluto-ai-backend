@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 
@@ -11,5 +11,4 @@ class SeasonStats(BaseModel):
     total_games: int = 0
     last_30_days_avg: Optional[float] = None
 
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(arbitrary_types_allowed=True)

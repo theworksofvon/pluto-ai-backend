@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Any, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 
 from models.player_analysis_models import PlayerFormAnalysis
@@ -9,7 +9,7 @@ from models.season_stats_model import SeasonStats
 
 class Game(BaseModel):
     opposing_team: str
-    game_id: str
+    game_date: Optional[str] = Field(default_factory=lambda: datetime.now().date())
 
 
 class PlayerStats(BaseModel):
@@ -24,8 +24,7 @@ class AdvancedMetrics(BaseModel):
     ceiling_potential: Optional[float] = None
     minutes_correlation: Optional[float] = None
 
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ModelPrediction(BaseModel):
@@ -52,7 +51,4 @@ class PredictionContext(BaseModel):
     raw_data: Optional[PlayerStats] = None
     timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
 
-    class Config:
-        """Configuration for the model."""
-
-        extra = "allow"  # Allow additional fields not specified in the model
+    model_config = ConfigDict(arbitrary_types_allowed=True)

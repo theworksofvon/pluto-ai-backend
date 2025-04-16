@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import date, datetime
 from adapters.db.sqlalchemy.tables import PredictionType
@@ -23,8 +23,7 @@ class GamePredictionRead(BaseModel):
     opposing_team_win_percentage: float
     timestamp: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class PlayerPredictionCreate(BaseModel):
@@ -41,6 +40,8 @@ class PlayerPredictionCreate(BaseModel):
     prizepicks_prediction: Optional[str] = None
     prizepicks_line: Optional[float] = None
     prizepicks_reason: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PlayerPredictionRead(BaseModel):
@@ -60,5 +61,4 @@ class PlayerPredictionRead(BaseModel):
     prizepicks_reason: Optional[str] = None
     timestamp: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(arbitrary_types_allowed=True, from_attributes=True)

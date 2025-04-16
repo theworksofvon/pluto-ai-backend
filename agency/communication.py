@@ -131,30 +131,31 @@ class CommunicationProtocol:
 
         Args:
             prompt (str): The input prompt for the model.
-            format (Dict) type: The response format for the model. Defaults to json_object.
+            format (Dict] type: The response format for the model. Defaults to json_object.
+            web_search (bool): Whether to invoke the built‑in web search tool.
+
         Returns:
             str: The model's response.
         """
         api_key = self.config.OPENAI_API_KEY_OAI or os.getenv("OPENAI_API_KEY_OAI")
         if not api_key:
             raise ValueError("OpenAI API key is missing.")
+
         client = OpenAI(base_url="https://api.openai.com/v1", api_key=api_key)
 
         try:
             response = client.responses.create(
                 model=self.default_open_ai_model,
                 input=prompt,
-                tools=(
-                    [{"type": "function", "function": {"name": "web_search"}}]
-                    if web_search
-                    else None
-                ),
+                tools=[{"type": "web_search_preview"}] if web_search else None,
             )
-            return response.output[1].content[0].text
+            msg = response.output[0]
+
+            text = msg.content[0].text
+
+            return text
         except Exception as error:
-            error_message = (
-                f"Error communicating with OpenAI model: {self.model}, error: {error}"
-            )
+            error_message = f"Error communicating with OpenAI model: {self.default_open_ai_model}, error: {error}"
             print(error_message)
             raise CommunicationsProtocolError(error_message, status_code=400)
 

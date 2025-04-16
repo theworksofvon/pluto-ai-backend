@@ -1,6 +1,10 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Dict, Any, Union
 from datetime import datetime
+from models.prediction_context import Game
+from models.player_analysis_models import PlayerFormAnalysis
+from models.team_models import PrizepicksFactors, VegasFactors
+from models.prediction_context import ModelPrediction
 
 
 class PredictionRequest(BaseModel):
@@ -21,6 +25,8 @@ class PredictionValue(BaseModel):
     prizepicks_line: str
     prizepicks_reason: str
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class PredictionResponse(BaseModel):
     status: str
@@ -28,7 +34,7 @@ class PredictionResponse(BaseModel):
     prediction_type: str
     opposing_team: str
     timestamp: datetime
-    prediction: Optional[PredictionValue] = None
+    prediction: PredictionValue
 
 
 # --- Game Prediction Models ---
@@ -77,13 +83,6 @@ class GamePredictionResponse(BaseModel):
     message: Optional[str] = None
 
 
-class Game(BaseModel):
-    """Game information for player predictions."""
-
-    opposing_team: str
-    game_id: str
-
-
 class PredictionData(BaseModel):
     """Detailed prediction data for player performance."""
 
@@ -104,31 +103,9 @@ class PlayerPredictionResponse(BaseModel):
     game: Game
     prediction_type: str
     prediction: PredictionData
-    recent_form: Optional[Dict[str, Any]] = None
-    prizepicks_factors: Optional[Dict[str, Any]] = None
-    vegas_factors: Optional[Dict[str, Any]] = None
+    recent_form: Optional[PlayerFormAnalysis] = None
+    prizepicks_factors: Optional[PrizepicksFactors] = None
+    vegas_factors: Optional[VegasFactors] = None
     timestamp: Optional[str] = None
-    model_prediction: Union[str, Dict[str, Any]] = "not available"
-
-    class Config:
-        """Configuration for the Pydantic model."""
-
-        json_schema_extra = {
-            "example": {
-                "status": "success",
-                "player": "LeBron James",
-                "game": {
-                    "opposing_team": "Brooklyn Nets",
-                    "game_id": "20231015-LAL-BKN",
-                },
-                "prediction_type": "points",
-                "prediction": {
-                    "value": 28.5,
-                    "range_low": 24.0,
-                    "range_high": 33.0,
-                    "confidence": 0.85,
-                    "explanation": "LeBron has averaged 29.3 points against the Nets in the last 3 games.",
-                },
-                "timestamp": "2023-10-15T12:00:00Z",
-            }
-        }
+    model_prediction: Union[str, ModelPrediction] = "not available"
+    model_config = ConfigDict(from_attributes=True)
