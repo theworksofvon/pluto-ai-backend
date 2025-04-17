@@ -1,15 +1,14 @@
 from datetime import date, datetime
 from typing import List, Optional, Dict, Any, Set
 
-from pydantic import BaseModel
-
+from models import BaseSchema
 from adapters import Adapters, VegasOddsInterface
 from config import config
 from logger import logger
 from adapters.prizepicks import PrizePicksAdapter
 
 
-class TeamOdds(BaseModel):
+class TeamOdds(BaseSchema):
     team_name: str
     moneyline: Optional[float] = None
     spread: Optional[float] = None
@@ -20,7 +19,7 @@ class TeamOdds(BaseModel):
     total_under_odds: Optional[int] = None
 
 
-class GameOdds(BaseModel):
+class GameOdds(BaseSchema):
     game_id: Optional[str] = None
     sport_key: str
     start_time: datetime

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, status
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Literal
 from datetime import datetime
 
 from models import (
@@ -247,3 +247,27 @@ async def fill_actual_values(
         raise HTTPException(
             status_code=500, detail=f"Fill actual values error: {str(e)}"
         )
+
+
+@router.get("/get-evaluation-metrics")
+async def get_evaluation_metrics(
+    timeframe: Literal["7_days", "14_days", "30_days", "all_time"] = "7_days",
+    prediction_type: str = "points",
+    service: EvaluationService = Depends(get_evaluation_service),
+):
+    return await service.get_prediction_metrics_by_timeframe(
+        timeframe=timeframe, prediction_type=prediction_type
+    )
+
+
+@router.get("/get-key-metrics")
+async def get_key_metrics(
+    timeframe: Literal["7_days", "14_days", "30_days", "all_time"] = "7_days",
+    service: EvaluationService = Depends(get_evaluation_service),
+):
+    """
+    Get key dashboard metrics with change values from previous period.
+
+    Returns formatted metrics matching the frontend dashboard requirements.
+    """
+    return await service.get_key_metrics(timeframe=timeframe)

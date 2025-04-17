@@ -1,8 +1,9 @@
-from pydantic import BaseModel, ConfigDict
 import pandas as pd
+from models import BaseSchema
+from pydantic import ConfigDict
 
 
-class DataPipelineLatestData(BaseModel):
+class DataPipelineLatestData(BaseSchema):
     player_stats: pd.DataFrame
     odds_data: pd.DataFrame
 
