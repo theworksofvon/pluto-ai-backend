@@ -31,14 +31,14 @@ router = APIRouter(
 )
 
 
-@router.get("/all-predictions")
+@router.post("/all-predictions")
 async def get_all_predictions(
     agent: PlayerPredictionAgent = Depends(get_player_prediction_agent),
 ):
     return await agent._run_daily_predictions()
 
 
-@router.get("/all-game-predictions")
+@router.post("/all-game-predictions")
 async def get_all_game_predictions(
     agent: GamePredictionAgent = Depends(get_game_prediction_agent),
 ):
