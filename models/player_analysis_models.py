@@ -1,9 +1,10 @@
 from typing import List, Optional, Literal
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import Field, ConfigDict
 import numpy as np
+from models import BaseSchema
 
 
-class PlayerFormAnalysis(BaseModel):
+class PlayerFormAnalysis(BaseSchema):
     """Model representing a player's recent form analysis."""
 
     recent_average_5: Optional[float] = None

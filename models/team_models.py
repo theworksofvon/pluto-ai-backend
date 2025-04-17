@@ -1,8 +1,9 @@
 from typing import Dict, List, Optional, Any
-from pydantic import BaseModel, Field
+from pydantic import Field
+from models import BaseSchema
 
 
-class TeamMatchup(BaseModel):
+class TeamMatchup(BaseSchema):
     """Model representing a team matchup analysis for predictions."""
 
     player_team: str
@@ -21,7 +22,7 @@ class TeamMatchup(BaseModel):
     team_win_probability: Optional[float] = None
 
 
-class VegasFactors(BaseModel):
+class VegasFactors(BaseSchema):
     """Model representing Vegas betting lines and factors."""
 
     over_under: Optional[float] = None
@@ -31,7 +32,7 @@ class VegasFactors(BaseModel):
     favorite_status: Optional[str] = None
 
 
-class PrizepicksFactors(BaseModel):
+class PrizepicksFactors(BaseSchema):
     """Model representing Prizepicks lines and factors."""
 
     line: Optional[float] = None

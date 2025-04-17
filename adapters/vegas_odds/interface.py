@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional, Union, Any
-from pydantic import BaseModel
+from models import BaseSchema
 
 
-class SportsResponse(BaseModel):
+class SportsResponse(BaseSchema):
     key: str
     group: str
     title: str
@@ -11,7 +11,7 @@ class SportsResponse(BaseModel):
     has_outrights: bool
 
 
-class VegasOddsResponse(BaseModel):
+class VegasOddsResponse(BaseSchema):
     response: Union[SportsResponse, Any]
     status_code: int
 

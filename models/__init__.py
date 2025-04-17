@@ -1,3 +1,5 @@
+from .base import BaseSchema
+
 from .prediction_models import (
     PredictionRequest,
     PredictionValue,
@@ -7,8 +9,8 @@ from .prediction_models import (
     GamePredictionResponse,
 )
 
-
 __all__ = [
+    "BaseSchema",
     "PredictionRequest",
     "PredictionValue",
     "PredictionResponse",

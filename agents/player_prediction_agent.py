@@ -19,7 +19,6 @@ from models.prediction_context import PredictionContext
 import numpy as np
 import pandas as pd
 import json
-from pydantic import BaseModel as PydanticBaseModel
 
 
 def convert_numpy_types(obj):

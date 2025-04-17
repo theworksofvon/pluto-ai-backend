@@ -1,13 +1,14 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any, Union, Literal
 from datetime import datetime
 from models.prediction_context import Game
 from models.player_analysis_models import PlayerFormAnalysis
 from models.team_models import PrizepicksFactors, VegasFactors
 from models.prediction_context import ModelPrediction
+from models.base import BaseSchema
 
 
-class PredictionRequest(BaseModel):
+class PredictionRequest(BaseSchema):
     player_name: str
     opposing_team: str
     prediction_type: Optional[str] = "points"
@@ -16,7 +17,7 @@ class PredictionRequest(BaseModel):
     prizepicks_line: Optional[str] = None
 
 
-class PredictionValue(BaseModel):
+class PredictionValue(BaseSchema):
     value: float
     range_low: float
     range_high: float
@@ -28,7 +29,7 @@ class PredictionValue(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PredictionResponse(BaseModel):
+class PredictionResponse(BaseSchema):
     status: str
     player: str
     prediction_type: str
@@ -37,12 +38,12 @@ class PredictionResponse(BaseModel):
     prediction: PredictionValue
 
 
-class PredictionRange(BaseModel):
+class PredictionRange(BaseSchema):
     low: float
     high: float
 
 
-class FormattedPrediction(BaseModel):
+class FormattedPrediction(BaseSchema):
     name: str
     team: str
     opponent: str
@@ -64,7 +65,7 @@ class FormattedPrediction(BaseModel):
 # --- Game Prediction Models ---
 
 
-class GamePredictionRequest(BaseModel):
+class GamePredictionRequest(BaseSchema):
     home_team_abbr: str = Field(
         ..., description="Abbreviation of the home team (e.g., LAL)"
     )
@@ -74,7 +75,7 @@ class GamePredictionRequest(BaseModel):
     game_id: Optional[str] = Field(None, description="Optional specific Game ID")
 
 
-class GamePredictionValue(BaseModel):
+class GamePredictionValue(BaseSchema):
     value: Optional[str] = Field(
         None, description="Predicted winner team abbreviation (e.g., LAL or DEN)"
     )
@@ -92,7 +93,7 @@ class GamePredictionValue(BaseModel):
     )
 
 
-class GamePredictionResponse(BaseModel):
+class GamePredictionResponse(BaseSchema):
     status: str
     game: Optional[Dict[str, Any]] = Field(
         None, description="Details of the game requested"
@@ -107,7 +108,7 @@ class GamePredictionResponse(BaseModel):
     message: Optional[str] = None
 
 
-class PredictionData(BaseModel):
+class PredictionData(BaseSchema):
     """Detailed prediction data for player performance."""
 
     value: Optional[float] = None
@@ -119,7 +120,7 @@ class PredictionData(BaseModel):
     prizepicks_reason: Optional[str] = None
 
 
-class PlayerPredictionResponse(BaseModel):
+class PlayerPredictionResponse(BaseSchema):
     """Complete player prediction response structure."""
 
     status: str = "success"
@@ -133,3 +134,41 @@ class PlayerPredictionResponse(BaseModel):
     timestamp: Optional[str] = None
     model_prediction: Union[str, ModelPrediction] = "not available"
     model_config = ConfigDict(from_attributes=True)
+
+
+class PredictionMetrics(BaseSchema):
+    timeframe: Literal["7_days", "14_days", "30_days", "all_time"]
+    prediction_type: str
+    total_evaluated: int
+    exact_accuracy: float
+    range_accuracy: float
+    over_under_accuracy: float
+    exact_correct: int
+    range_correct: int
+    over_under_correct: int
+    over_under_evaluable: int
+    error: Optional[str] = None
+
+
+class AllTimeframeMetrics(BaseSchema):
+    metrics: Dict[
+        Literal["7_days", "14_days", "30_days", "all_time"], PredictionMetrics
+    ]
+
+
+class MetricWithChange(BaseSchema):
+    value: str
+    change: str
+
+
+class PlayerInfo(BaseSchema):
+    name: str
+    count: Optional[int] = None
+    accuracy: Optional[str] = None
+
+
+class KeyMetrics(BaseSchema):
+    prediction_accuracy: MetricWithChange
+    win_rate: MetricWithChange
+    most_picked_player: PlayerInfo
+    timeframe: str

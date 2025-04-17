@@ -1,8 +1,8 @@
 import json
 import re
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional
+from models import BaseSchema
 
 from logger import logger
 
@@ -17,7 +17,7 @@ class FieldType(Enum):
     ARRAY = "array"
 
 
-class FieldSchema(BaseModel):
+class FieldSchema(BaseSchema):
     """Schema definition for a field to be extracted."""
 
     name: str

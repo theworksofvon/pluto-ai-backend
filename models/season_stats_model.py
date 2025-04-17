@@ -1,8 +1,9 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 from typing import Optional
+from models import BaseSchema
 
 
-class SeasonStats(BaseModel):
+class SeasonStats(BaseSchema):
     season_average: Optional[float] = None
     season_high: Optional[float] = None
     season_low: Optional[float] = None

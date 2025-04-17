@@ -1,10 +1,11 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 from typing import Optional
 from datetime import date, datetime
 from adapters.db.sqlalchemy.tables import PredictionType
+from models import BaseSchema
 
 
-class GamePredictionCreate(BaseModel):
+class GamePredictionCreate(BaseSchema):
     game_date: date
     home_team: str
     away_team: str
@@ -15,7 +16,7 @@ class GamePredictionCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class GamePredictionRead(BaseModel):
+class GamePredictionRead(BaseSchema):
     prediction_id: int
     game_date: date
     home_team: str
@@ -28,7 +29,7 @@ class GamePredictionRead(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, from_attributes=True)
 
 
-class PlayerPredictionCreate(BaseModel):
+class PlayerPredictionCreate(BaseSchema):
     game_date: date
     player_name: str
     team: str
@@ -46,7 +47,7 @@ class PlayerPredictionCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PlayerPredictionRead(BaseModel):
+class PlayerPredictionRead(BaseSchema):
     prediction_id: int
     game_date: date
     player_name: str

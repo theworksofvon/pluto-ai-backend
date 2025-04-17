@@ -1,23 +1,23 @@
 from typing import Dict, List, Optional, Any, Union
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import Field, ConfigDict
 from datetime import datetime
-
+from models import BaseSchema
 from models.player_analysis_models import PlayerFormAnalysis
 from models.team_models import TeamMatchup, VegasFactors, PrizepicksFactors
 from models.season_stats_model import SeasonStats
 
 
-class Game(BaseModel):
+class Game(BaseSchema):
     opposing_team: str
     game_date: Optional[str] = Field(default_factory=lambda: datetime.now().date())
 
 
-class PlayerStats(BaseModel):
+class PlayerStats(BaseSchema):
     player_stats: List[Dict[str, Any]]
     total_games_available: int
 
 
-class AdvancedMetrics(BaseModel):
+class AdvancedMetrics(BaseSchema):
     """Model representing a player's advanced metrics."""
 
     consistency_score: Optional[float] = None
@@ -27,13 +27,13 @@ class AdvancedMetrics(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class ModelPrediction(BaseModel):
+class ModelPrediction(BaseSchema):
     """Model representing a statistical model's prediction."""
 
     prediction: Optional[float] = None
 
 
-class PredictionContext(BaseModel):
+class PredictionContext(BaseSchema):
     """Complete context model for player predictions."""
 
     status: str = "success"
