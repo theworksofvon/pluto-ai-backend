@@ -9,6 +9,7 @@ from models import (
     GamePredictionRequest,
     GamePredictionValue,
     GamePredictionResponse,
+    PromptPlutoRequest,
 )
 from agents import PlayerPredictionAgent, GamePredictionAgent
 from services.game_service import GameService
@@ -20,6 +21,7 @@ from routers.helpers.helpers import (
     get_game_service,
     get_data_pipeline,
     get_evaluation_service,
+    get_adapters,
 )
 
 from logger import logger
@@ -156,13 +158,13 @@ async def predict_game_winner(
                 "opposing_team_win_percentage"
             ),
             explanation=raw_prediction.get("explanation"),
+            additional_context=raw_prediction.get("additional_context"),
         )
 
         return GamePredictionResponse(
             status="success",
             game=agent_result.get("game"),
             prediction=prediction_value,
-            context_summary=agent_result.get("context_summary"),
         )
 
     except Exception as e:
@@ -236,6 +238,16 @@ async def evaluate_predictions(
         raise HTTPException(status_code=500, detail=f"Evaluation error: {str(e)}")
 
 
+@router.get("/evaluate-game-predictions")
+async def evaluate_game_predictions(
+    service: EvaluationService = Depends(get_evaluation_service),
+):
+    """
+    Evaluate all game predictions in the database.
+    """
+    return await service.evaluate_game_predictions()
+
+
 @router.get("/fill-actual-values")
 async def fill_actual_values(
     service: EvaluationService = Depends(get_evaluation_service),
@@ -271,3 +283,15 @@ async def get_key_metrics(
     Returns formatted metrics matching the frontend dashboard requirements.
     """
     return await service.get_key_metrics(timeframe=timeframe)
+
+
+@router.post("/prompt-pluto")
+async def prompt_pluto(
+    data: PromptPlutoRequest = Body(...),
+    agent: PlayerPredictionAgent = Depends(get_player_prediction_agent),
+):
+    """
+    Prompt Pluto any question.
+    """
+    logger.info(f"Prompt Pluto request received: {data.prompt}")
+    return await agent.prompt(data.prompt)

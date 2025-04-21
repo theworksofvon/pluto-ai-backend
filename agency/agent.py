@@ -2,7 +2,6 @@ from pydantic import BaseModel
 from typing import Callable, Union, Optional, List, Dict
 from abc import ABC, abstractmethod
 from .agency_types import Tendencies, Roles
-from config import config
 from .communication import CommunicationProtocol
 from .exceptions import CommunicationsProtocolError
 from .retrievers.retriever import BaseRetriever

@@ -129,6 +129,23 @@ class NbaAnalyticsInterface(ABC):
         pass
 
     @abstractmethod
+    async def get_game_winner(
+        self, game_date: date, home_team: str, away_team: str
+    ) -> Dict:
+        """
+        Get the winner of a game.
+
+        Args:
+            game_date (date): Date of the game.
+            home_team (str): Abbreviation or Name of the home team.
+            away_team (str): Abbreviation or Name of the away team.
+
+        Returns:
+            Dict: Dictionary containing the winner of the game.
+        """
+        pass
+
+    @abstractmethod
     async def get_starting_lineup(self, team_name: str) -> List[Dict]:
         """
         Get the starting lineup for a team.

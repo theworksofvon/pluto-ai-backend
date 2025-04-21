@@ -13,7 +13,11 @@ from nba_api.stats.endpoints import (
 from nba_api.live.nba.endpoints import scoreboard
 from datetime import datetime, date
 from logger import logger
-from agents.helpers.team_helpers import get_team_abbr_from_name, get_team_name_from_id
+from agents.helpers.team_helpers import (
+    get_team_abbr_from_name,
+    get_team_name_from_id,
+    get_team_id,
+)
 
 import pandas as pd
 from typing import List, Dict, Any, Optional, Tuple
@@ -416,3 +420,65 @@ class NbaAnalyticsPipeline(NbaAnalyticsInterface):
         except Exception as e:
             logger.error(f"Error getting players: {e}")
             return []
+
+    async def get_game_winner(
+        self, game_date: str, home_team: str, away_team: str
+    ) -> dict:
+        """Fetch the game winner for a given game date and team abbreviations.
+
+        Args:
+            game_date (str): Date of the game in YYYY-MM-DD format.
+            home_team (str): Abbreviation or Name for the home team.
+            away_team (str): Abbreviation or Name for the away team.
+
+        Returns:
+            dict: A dictionary with key 'actual_winner' containing the winning team's abbreviation, 'Tie' if scores are equal, or None if not found.
+        """
+        try:
+            dt = datetime.strptime(game_date, "%Y-%m-%d")
+            formatted_date = dt.strftime("%m/%d/%Y")
+            scoreboard = scoreboardv2.ScoreboardV2(game_date=formatted_date)
+            data = scoreboard.get_normalized_dict()
+            games = data.get("GameHeader", [])
+
+            home_team_id = get_team_id(home_team)
+            away_team_id = get_team_id(away_team)
+            if home_team_id is None or away_team_id is None:
+                logger.error("Could not find team IDs for the given abbreviations")
+                raise ValueError("Could not find team IDs for the given abbreviations")
+
+            game_found = None
+            for game in games:
+                if (
+                    game.get("HOME_TEAM_ID") == home_team_id
+                    and game.get("VISITOR_TEAM_ID") == away_team_id
+                ):
+                    game_found = game
+                    break
+            if game_found is None:
+                logger.error("No matching game found for the given date and teams")
+                raise ValueError("No matching game found for the given date and teams")
+
+            game_id = game_found.get("GAME_ID")
+            if not game_id:
+                logger.error("No game ID found for the matching game")
+                raise ValueError("No game ID found for the matching game")
+
+            line_scores = data.get("LineScore", [])
+            home_score = None
+            away_score = None
+            for record in line_scores:
+                if record.get("GAME_ID") == game_id:
+                    if record.get("TEAM_ID") == home_team_id:
+                        home_score = int(record.get("PTS") or 0)
+                    elif record.get("TEAM_ID") == away_team_id:
+                        away_score = int(record.get("PTS") or 0)
+            if home_score is None or away_score is None:
+                logger.error("Scores not found for the matching game")
+                raise ValueError("Scores not found for the matching game")
+
+            actual_winner = home_team if home_score > away_score else away_team
+            return {"actual_winner": actual_winner}
+        except Exception as e:
+            logger.error(f"Error fetching game winner: {e}", exc_info=True)
+            raise e

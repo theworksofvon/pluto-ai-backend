@@ -67,6 +67,39 @@ _TEAM_ID_TO_ABBR = {
     "1610612764": "WAS",
 }
 
+TEAM_ABBR_TO_ID = {
+    "atl": 1610612737,
+    "bos": 1610612738,
+    "cle": 1610612739,
+    "nop": 1610612740,
+    "chi": 1610612741,
+    "dal": 1610612742,
+    "den": 1610612743,
+    "gsw": 1610612744,
+    "hou": 1610612745,
+    "lac": 1610612746,
+    "lal": 1610612747,
+    "mia": 1610612748,
+    "mil": 1610612749,
+    "min": 1610612750,
+    "bkn": 1610612751,
+    "nyk": 1610612752,
+    "orl": 1610612753,
+    "ind": 1610612754,
+    "phi": 1610612755,
+    "phx": 1610612756,
+    "por": 1610612757,
+    "sac": 1610612758,
+    "sas": 1610612759,
+    "okc": 1610612760,
+    "tor": 1610612761,
+    "uta": 1610612762,
+    "mem": 1610612763,
+    "was": 1610612764,
+    "det": 1610612765,
+    "cha": 1610612766,
+}
+
 _TEAM_ABBR_TO_NAME = {
     v: _TEAM_ID_TO_NAME[k] for k, v in _TEAM_ID_TO_ABBR.items() if k in _TEAM_ID_TO_NAME
 }
@@ -119,3 +152,42 @@ def get_team_abbr_from_name(team_name: str) -> Optional[str]:
     except Exception as e:
         logger.error(f"Error converting team name {team_name} to abbreviation: {e}")
         return None
+
+
+def get_team_id_from_abbr(team_abbr: str) -> Optional[int]:
+    """
+    Convert a team abbreviation to its team ID using the TEAM_ABBR_TO_ID mapping.
+
+    Args:
+        team_abbr (str): The team abbreviation.
+
+    Returns:
+        Optional[int]: The corresponding team ID if found, otherwise None.
+    """
+    try:
+        return TEAM_ABBR_TO_ID.get(team_abbr.lower())
+    except Exception as e:
+        logger.error(f"Error converting team abbreviation {team_abbr} to team id: {e}")
+        return None
+
+
+def get_team_id(team_value: str) -> Optional[int]:
+    """
+    Convert a team abbreviation or full team name to its team ID using the TEAM_ABBR_TO_ID mapping.
+    This function first checks if the given team_value (after lowering the case) is present in TEAM_ABBR_TO_ID.
+    If not, it attempts to convert the full team name to an abbreviation using get_team_abbr_from_name and then looks up the team ID.
+
+    Args:
+        team_value (str): The team abbreviation or full team name.
+
+    Returns:
+        Optional[int]: The corresponding team ID if found, otherwise None.
+    """
+    team_id = TEAM_ABBR_TO_ID.get(team_value.lower())
+    if team_id is not None:
+        return team_id
+
+    abbr = get_team_abbr_from_name(team_value)
+    if abbr:
+        return TEAM_ABBR_TO_ID.get(abbr.lower())
+    return None

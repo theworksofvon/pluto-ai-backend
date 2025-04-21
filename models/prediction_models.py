@@ -15,6 +15,7 @@ class PredictionRequest(BaseSchema):
     game_id: Optional[str] = None
     team: Optional[str] = None
     prizepicks_line: Optional[str] = None
+    additional_context: Optional[str] = None
 
 
 class PredictionValue(BaseSchema):
@@ -91,6 +92,10 @@ class GamePredictionValue(BaseSchema):
     explanation: Optional[str] = Field(
         None, description="Explanation for the prediction"
     )
+    additional_context: Optional[str] = Field(
+        None,
+        description="Additional context that you found that is relevant to the prediction",
+    )
 
 
 class GamePredictionResponse(BaseSchema):
@@ -118,6 +123,7 @@ class PredictionData(BaseSchema):
     explanation: str = "No explanation provided"
     prizepicks_line: Optional[str] = None
     prizepicks_reason: Optional[str] = None
+    additional_context: Optional[str] = None
 
 
 class PlayerPredictionResponse(BaseSchema):
@@ -172,3 +178,7 @@ class KeyMetrics(BaseSchema):
     win_rate: MetricWithChange
     most_picked_player: PlayerInfo
     timeframe: str
+
+
+class PromptPlutoRequest(BaseSchema):
+    prompt: str

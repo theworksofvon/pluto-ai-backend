@@ -50,5 +50,6 @@ class PredictionContext(BaseSchema):
     advanced_metrics: Optional[AdvancedMetrics] = None
     raw_data: Optional[PlayerStats] = None
     timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
+    additional_context: Optional[str] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
