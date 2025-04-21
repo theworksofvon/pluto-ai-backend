@@ -114,6 +114,9 @@ When presenting predictions, provide clear and detailed explanations of your ana
             FieldSchema(
                 name="prizepicks_reason", type=FieldType.STRING, required=False
             ),
+            FieldSchema(
+                name="additional_context", type=FieldType.STRING, required=False
+            ),
         ]
         self.parser = SchemaJsonParser(self.player_prediction_schema)
 
@@ -189,6 +192,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
         prediction_type: str = "points",
         team: Optional[str] = None,
         prizepicks_line: Optional[str] = None,
+        additional_context: Optional[str] = None,
     ) -> PlayerPredictionResponse:
         """
         Predict a player's performance using an agent.
@@ -206,6 +210,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
             opposing_team=opposing_team,
             prediction_type=prediction_type,
             model_type=prediction_type,
+            additional_context=additional_context,
         )
         logger.info(f"Agent Context: {context}")
 
@@ -281,7 +286,12 @@ When presenting predictions, provide clear and detailed explanations of your ana
         prompt = (
             f"You are Pluto, an expert NBA analytics model. Your task is to accurately predict"
             f"Use statistical reasoning and weigh recent trends more heavily than season averages if there is a strong deviation. Favor matchups and recent minutes played when uncertainty is high. Only include values that are well-supported by the data. Prioritize predictive signal over noise."
-            f"Because it is the NBA Play-In Tournament, consider that teams could potentially be highly motivated and rotations are likely to tighten. Starters may play heavier minutes, and coaches will prioritize winning over player rest. Weigh recent performance, matchup importance, and coaching tendencies accordingly when making your prediction."
+            f"Because it is the NBA Play-Offs, consider that teams could potentially be highly motivated and rotations are likely to tighten. Starters may play heavier minutes, and coaches will prioritize winning over player rest. Weigh recent performance, matchup importance, and coaching tendencies accordingly when making your prediction."
+            f"**Tool usage**: First, call the web search tool to fetch the very latest news, injury updates, and game recaps for {player_name} from reputable sports sites. Gather at least 3 of the most recent articles (include title, source name, and URL)."
+            f"Then, use the web search results to inform your prediction. If there is no relevant information, just say 'No relevant information found'."
+            f"You can also use the web search tool to find information about the {opposing_team} and their players."
+            f"Finally, you can use the web search tool to find any verified gossip/rumors about the players and the team. Anything that you think will affect the points of {player_name}. Do not make up any information, only use the information that you find that has been verified by a reputable source."
+            f"REMINDER: Only use information thats relevant to current date and time. {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             f"Here is all the relevant data:"
             f"how many {prediction_type} the player {player_name} will record against the {opposing_team}.\n\n"
             f"The PrizePicks line is at {prizepicks_line} points for {player_name}.\n\n"
@@ -299,8 +309,10 @@ When presenting predictions, provide clear and detailed explanations of your ana
             '  "explanation": string (avoid using apostrophes to ensure valid JSON)\n'
             '  "prizepicks_line": "over" or "under",\n'
             '  "prizepicks_reason": "Reasoning for the line choice"\n'
+            '  "additional_context": "Any additional context that you think is relevant to the prediction, this could be any gossip/rumors you found that are verified or relevant articles"\n'
             "}\n"
             "```\n\n"
+            f"*****REMINDER: Always respond in the appropriate format if a player is injured or not playing, but provide the reason for your prediction.*****"
             "In your explanation, provide detailed reasoning covering:\n"
             "1. Recent player performance trends\n"
             "2. Historical matchup performance\n"

@@ -7,6 +7,7 @@ from .prediction_models import (
     GamePredictionRequest,
     GamePredictionValue,
     GamePredictionResponse,
+    PromptPlutoRequest,
 )
 
 __all__ = [
@@ -17,4 +18,5 @@ __all__ = [
     "GamePredictionRequest",
     "GamePredictionValue",
     "GamePredictionResponse",
+    "PromptPlutoRequest",
 ]

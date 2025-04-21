@@ -99,6 +99,9 @@ When presenting predictions, provide clear and detailed explanations of your ana
             FieldSchema(
                 name="prizepicks_reason", type=FieldType.STRING, required=False
             ),
+            FieldSchema(
+                name="additional_context", type=FieldType.STRING, required=False
+            ),
         ]
         self.parser = SchemaJsonParser(self.game_prediction_schema)
 
@@ -390,6 +393,11 @@ When presenting predictions, provide clear and detailed explanations of your ana
         prompt = (
             f"You are Pluto, an expert NBA analytics model. Your task is to accurately predict "
             f"the winner of the game between {home_team_abbr} and {away_team_abbr}.\n\n"
+            f"Because it is the NBA Play-Offs, consider that teams could potentially be highly motivated and rotations are likely to tighten. Starters may play heavier minutes, and coaches will prioritize winning over player rest. Weigh recent performance, matchup importance, and coaching tendencies accordingly when making your prediction."
+            f"**Tool usage**: First, call the web search tool to fetch the very latest news, injury updates, and game recaps for {home_team_abbr} and {away_team_abbr} from reputable sports sites. Gather at least 3 of the most recent articles (include title, source name, and URL)."
+            f"Then, use the web search results to inform your prediction. If there is no relevant information, just say 'No relevant information found'."
+            f"You can also use the web search tool to find information about the {home_team_abbr} and {away_team_abbr} and their players."
+            f"Finally, you can use the web search tool to find any verified gossip/rumors about the players and the team. Anything that you think will affect the performance of {home_team_abbr} or {away_team_abbr}. Do not make up any information, only use the information that you find that has been verified by a reputable source."
             "Here is the structured data you should analyze (JSON format):\n"
             f"{safe_context}\n\n"
             "Based on the provided data, strictly follow this JSON response schema:\n"
@@ -400,6 +408,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
             '  "home_team_win_percentage": float (0 to 1, estimated probability home team wins),\n'
             '  "opposing_team_win_percentage": float (0 to 1, estimated probability away team wins),\n'
             '  "explanation": string (valid string, with no apostrophes or quotes)\n'
+            '  "additional_context": string (any additional context that you think is relevant to the prediction, this could be any gossip/rumors you found that are verified or relevant articles)\n'
             "}\n"
             "```\n\n"
             "Important: Ensure home_team_win_percentage + opposing_team_win_percentage sums to 1.0.\n\n"
@@ -408,7 +417,8 @@ When presenting predictions, provide clear and detailed explanations of your ana
             "2. Head-to-head matchup history and implications\n"
             "3. Impact of Vegas odds and betting market signals (if available)\n"
             "4. Rest days, travel, and injury considerations\n"
-            "5. Game context and motivational factors"
+            "5. Game context and motivational factors\n"
+            "6. Additional context that you found that is relevant to the prediction"
         )
 
         response = await self.prompt(prompt, web_search=True)

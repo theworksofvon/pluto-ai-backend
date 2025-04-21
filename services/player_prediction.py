@@ -77,6 +77,7 @@ class PlayerPredictionService:
         opposing_team: str,
         prediction_type: str = "points",
         model_type: Optional[str] = "points",
+        additional_context: Optional[str] = None,
     ) -> PredictionContext:
         """
         Prepare all relevant context and data for a player prediction.
@@ -140,6 +141,8 @@ class PlayerPredictionService:
             .execute()
         )
 
+        logger.info(f"Previous predictions: {previous_predictions}")
+
         if previous_predictions.data:
             for prediction in previous_predictions.data:
                 if prediction.get("actual") is not None:
@@ -180,6 +183,7 @@ class PlayerPredictionService:
             model_prediction=model_prediction,
             historical_predictions=predictions_to_send,
             advanced_metrics=advanced_metrics,
+            additional_context=additional_context,
             raw_data=PlayerStats(
                 player_stats=player_stats.to_dict("records")[-10:],
                 total_games_available=len(player_stats),

@@ -29,12 +29,7 @@ class EvaluationService:
 
         try:
             logger.info("Fetching player predictions from database...")
-            response = (
-                self.supabase.table("player_predictions")
-                .select("*")
-                .is_("actual", None)
-                .execute()
-            )
+            response = self.supabase.table("player_predictions").select("*").execute()
             predictions_to_evaluate = response.data
 
             logger.info(
@@ -49,12 +44,6 @@ class EvaluationService:
             return
 
         for prediction in predictions_to_evaluate:
-            if (
-                prediction["was_exactly_correct"] is not None
-                or prediction["was_range_correct"] is not None
-                or prediction["was_over_under_correct"] is not None
-            ):
-                continue
             try:
                 logger.debug(f"Evaluating prediction ID: {prediction['prediction_id']}")
 
@@ -67,28 +56,34 @@ class EvaluationService:
                 prizepicks_prediction = prediction["prizepicks_prediction"]
                 prizepicks_line = prediction["prizepicks_line"]
                 prizepicks_reason = prediction["prizepicks_reason"]
-
+                actual = prediction["actual"]
                 actual_value: Optional[float] = None
                 try:
                     parsed_date = datetime.strptime(game_date, "%Y-%m-%d")
                     formatted_date = parsed_date.strftime("%Y-%m-%d")
-                    actual_value = (
-                        await self.adapters.nba_analytics.get_player_actual_stats(
-                            player_name=player_name,
-                            game_date=formatted_date,
-                            stat_type=prediction_type,
+                    if actual is None:
+                        actual_value = (
+                            await self.adapters.nba_analytics.get_player_actual_stats(
+                                player_name=player_name,
+                                game_date=formatted_date,
+                                stat_type=prediction_type,
+                            )
                         )
-                    )
-                    logger.info(
-                        f"Actual value for {player_name} ({prediction_type}) on {formatted_date}: {actual_value}"
-                    )
-                    if actual_value:
-                        self.supabase.table("player_predictions").update(
-                            {"actual": actual_value}
-                        ).eq("prediction_id", prediction["prediction_id"]).execute()
-                    logger.debug(
-                        f"Actual value for {player_name} ({prediction_type}) on {formatted_date}: {actual_value}"
-                    )
+                        logger.info(
+                            f"Actual value for {player_name} ({prediction_type}) on {formatted_date}: {actual_value}"
+                        )
+                        if actual_value:
+                            self.supabase.table("player_predictions").update(
+                                {"actual": actual_value}
+                            ).eq("prediction_id", prediction["prediction_id"]).execute()
+                        logger.debug(
+                            f"Actual value for {player_name} ({prediction_type}) on {formatted_date}: {actual_value}"
+                        )
+                    else:
+                        logger.info(
+                            f"Actual value for {player_name} ({prediction_type}) on {formatted_date}: {actual}"
+                        )
+                        actual_value = actual
                 except AttributeError:
                     logger.error(
                         "`get_player_actual_stats` method not found in nba_analytics adapter. Skipping actual value fetching."
@@ -242,6 +237,108 @@ class EvaluationService:
 
     async def evaluate_assists_predictions(self):
         pass
+
+    async def evaluate_game_predictions(self):
+        """
+        Evaluate game predictions by checking if the predicted game winner matches the actual game result.
+        Returns a dict with total evaluated and winner accuracy percentage.
+        """
+        try:
+            logger.info("Fetching game predictions from database...")
+            response = self.supabase.table("game_predictions").select("*").execute()
+            predictions_to_evaluate = response.data
+            if not predictions_to_evaluate:
+                logger.info("No game predictions found needing evaluation.")
+                return
+        except Exception as e:
+            logger.error(f"Error fetching game predictions: {e}")
+            return
+
+        total_evaluated = 0
+        winner_correct = 0
+
+        for prediction in predictions_to_evaluate:
+            try:
+                logger.info(
+                    f"Evaluating game prediction for game: {prediction.get('game_date')}, {prediction.get('home_team')} vs {prediction.get('away_team')}"
+                )
+                predicted_winner = prediction.get("predicted_winner")
+                actual_winner = prediction.get("actual")
+
+                if actual_winner is None:
+                    try:
+                        resp = await self.adapters.nba_analytics.get_game_winner(
+                            game_date=prediction.get("game_date"),
+                            home_team=prediction.get("home_team"),
+                            away_team=prediction.get("away_team"),
+                        )
+                        logger.info(f"Game winner: {resp}")
+                        if resp.get("actual_winner"):
+                            self.supabase.table("game_predictions").update(
+                                {"actual": resp.get("actual_winner")}
+                            ).eq("game_date", prediction.get("game_date")).eq(
+                                "home_team", prediction.get("home_team")
+                            ).eq(
+                                "away_team", prediction.get("away_team")
+                            ).execute()
+                            actual_winner = resp.get("actual_winner")
+                    except Exception as e:
+                        logger.error(
+                            f"Error getting game winner for game_id {prediction.get('game_date')}, {prediction.get('home_team')} vs {prediction.get('away_team')}: {e}",
+                            exc_info=True,
+                        )
+                        continue
+
+                is_correct = False
+                if predicted_winner and actual_winner:
+                    is_correct = (
+                        predicted_winner.strip().lower()
+                        == actual_winner.strip().lower()
+                    )
+
+                self.supabase.table("game_predictions").update(
+                    {"was_winner_correct": is_correct}
+                ).eq("game_date", prediction.get("game_date")).eq(
+                    "home_team", prediction.get("home_team")
+                ).eq(
+                    "away_team", prediction.get("away_team")
+                ).execute()
+
+                logger.debug(
+                    f"Updated game prediction for game: {prediction.get('game_date')}, {prediction.get('home_team')} vs {prediction.get('away_team')}"
+                )
+                total_evaluated += 1
+                if is_correct:
+                    winner_correct += 1
+            except Exception as e:
+                logger.error(
+                    f"Error processing game prediction for game_id {prediction.get('game_id')}: {e}",
+                    exc_info=True,
+                )
+
+        if total_evaluated == 0:
+            logger.info("No game predictions evaluated.")
+            return
+
+        accuracy = (winner_correct / total_evaluated) * 100
+        logger.info(
+            f"Game Predictions Evaluated: {total_evaluated}, Winner Accuracy: {accuracy:.2f}% ({winner_correct}/{total_evaluated})"
+        )
+
+        try:
+            self.supabase.table("game_model_stats").insert(
+                {
+                    "total_evaluated": total_evaluated,
+                    "winner_accuracy": round(accuracy, 2),
+                }
+            ).execute()
+        except Exception as e:
+            logger.error(f"Error inserting game metrics data: {e}", exc_info=True)
+
+        return {
+            "total_evaluated": total_evaluated,
+            "winner_accuracy": round(accuracy, 2),
+        }
 
     async def get_and_fill_actual_values(self):
         response = (

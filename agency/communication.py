@@ -142,17 +142,26 @@ class CommunicationProtocol:
             raise ValueError("OpenAI API key is missing.")
 
         client = OpenAI(base_url="https://api.openai.com/v1", api_key=api_key)
+        tools = [{"type": "web_search_preview"}] if web_search else None
 
         try:
             response = client.responses.create(
                 model=self.default_open_ai_model,
                 input=prompt,
-                tools=[{"type": "web_search_preview"}] if web_search else None,
+                tools=tools,
             )
-            msg = response.output[0]
-
-            text = msg.content[0].text
-
+            logger.info(f"OpenAI response: {response}")
+            outputs = response.output
+            text = ""
+            for msg in outputs:
+                if hasattr(msg, "content") and msg.content and len(msg.content) > 0:
+                    text = msg.content[0].text
+                    break
+            if not text:
+                for msg in outputs:
+                    if hasattr(msg, "function_call") and msg.function_call:
+                        text = msg.function_call.arguments
+                        break
             return text
         except Exception as error:
             error_message = f"Error communicating with OpenAI model: {self.default_open_ai_model}, error: {error}"
