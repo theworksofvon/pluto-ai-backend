@@ -17,6 +17,11 @@ class Config(BaseSettings):
         default="local",
     )
 
+    RESEND_API_KEY: str = Field(
+        description="Resend API key",
+        default="",
+    )
+
     LLAMA_CLOUD_API_KEY: str = Field(
         description="Llama Cloud API key",
         default="",
@@ -69,6 +74,11 @@ class Config(BaseSettings):
 
     ACCESS_TOKEN: str = Field(
         description="Access token",
+        default="",
+    )
+
+    SUPABASE_SERVICE_ROLE_KEY: str = Field(
+        description="Supabase service role key",
         default="",
     )
 

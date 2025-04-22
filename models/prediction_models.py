@@ -74,6 +74,10 @@ class GamePredictionRequest(BaseSchema):
         ..., description="Abbreviation of the away team (e.g., DEN)"
     )
     game_id: Optional[str] = Field(None, description="Optional specific Game ID")
+    additional_context: Optional[str] = Field(
+        None,
+        description="Additional context that you found that is relevant to the prediction",
+    )
 
 
 class GamePredictionValue(BaseSchema):

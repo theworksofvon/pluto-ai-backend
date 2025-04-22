@@ -138,6 +138,7 @@ async def predict_game_winner(
             home_team_abbr=data.home_team_abbr,
             away_team_abbr=data.away_team_abbr,
             game_id=data.game_id,
+            additional_context=data.additional_context,
         )
 
         if agent_result.get("status") != "success":
