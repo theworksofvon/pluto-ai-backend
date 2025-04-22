@@ -18,7 +18,9 @@ class Connections:
             config.DATABASE_URI, echo=config.SQL_ECHO
         )
         logger.info(f"Database connection created successfully: {cls.db}")
-        cls.supabase = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+        cls.supabase = create_client(
+            config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY
+        )
         logger.info("Supabase connection created successfully")
         logger.info("Connections created successfully")
         return cls

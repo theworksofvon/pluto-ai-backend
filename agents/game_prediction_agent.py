@@ -187,6 +187,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
         home_team_abbr: str,
         away_team_abbr: str,
         game_id: str | None = None,
+        additional_context: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Predict the winner of an NBA game using an agent.
@@ -203,6 +204,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
             home_team_abbr=home_team_abbr,
             away_team_abbr=away_team_abbr,
             game_id=game_id,
+            additional_context=additional_context,
         )
         logger.info(
             f"Agent Context Status for {home_team_abbr} vs {away_team_abbr}: {context.get('status')}"

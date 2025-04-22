@@ -5,6 +5,7 @@ from routers.dependecies import protected_route
 from .games import router as games_router
 from .players import router as players_router
 from .teams import router as teams_router
+from .user import router as user_router
 
 router = APIRouter(prefix="/v1/api", dependencies=[Depends(protected_route)])
 router.include_router(prediction_router, tags=["prediction"])
@@ -12,3 +13,4 @@ router.include_router(odds_router, tags=["odds"])
 router.include_router(games_router, tags=["games"])
 router.include_router(players_router, tags=["players"])
 router.include_router(teams_router, tags=["teams"])
+router.include_router(user_router, tags=["user"])

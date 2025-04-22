@@ -166,6 +166,7 @@ class GamePredictionService:
         prediction_date: Optional[
             datetime
         ] = None,  # Date for which prediction is needed
+        additional_context: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Prepare all relevant context and data for a game winner prediction,
@@ -292,6 +293,7 @@ class GamePredictionService:
                 "home": home_performance,
                 "away": away_performance,
             },
+            "additional_context": additional_context,
             "head_to_head": h2h_context,  # Based on dataset H2H win pct (or empty)
             "vegas_factors": vegas_factors,  # Live data (placeholder)
             "advanced_metrics": {  # Combining multiple sources
