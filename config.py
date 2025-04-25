@@ -82,6 +82,11 @@ class Config(BaseSettings):
         default="",
     )
 
+    BDL_API_KEY: str = Field(
+        description="BDL API key",
+        default="",
+    )
+
     JWT_SUPABASE_SECRET: str = Field(
         description="JWT Supabase secret",
         default="",

@@ -75,6 +75,7 @@ async def predict_player_performance(
             prediction_type=prediction_type,
             team=data.team,
             prizepicks_line=data.prizepicks_line,
+            season_mode=data.season_mode,
         )
 
         if prediction_data.status == "error":

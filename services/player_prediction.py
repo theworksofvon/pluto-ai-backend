@@ -1,7 +1,6 @@
-import pandas as pd
 import numpy as np
 from datetime import datetime
-from typing import Dict, Optional, Any, List
+from typing import Dict, Optional, Any, List, Literal
 from .data_pipeline import DataProcessor
 from logger import logger
 import os
@@ -78,6 +77,7 @@ class PlayerPredictionService:
         prediction_type: str = "points",
         model_type: Optional[str] = "points",
         additional_context: Optional[str] = None,
+        season_mode: Literal["regular_season", "playoffs", "finals"] = "regular_season",
     ) -> PredictionContext:
         """
         Prepare all relevant context and data for a player prediction.
@@ -184,6 +184,7 @@ class PlayerPredictionService:
             historical_predictions=predictions_to_send,
             advanced_metrics=advanced_metrics,
             additional_context=additional_context,
+            season_mode=season_mode,
             raw_data=PlayerStats(
                 player_stats=player_stats.to_dict("records")[-10:],
                 total_games_available=len(player_stats),
