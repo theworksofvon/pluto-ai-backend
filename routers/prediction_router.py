@@ -297,3 +297,10 @@ async def prompt_pluto(
     """
     logger.info(f"Prompt Pluto request received: {data.prompt}")
     return await agent.prompt(data.prompt)
+
+
+@router.get("/picks-of-the-day")
+async def get_picks_of_the_day(
+    agent: PlayerPredictionAgent = Depends(get_player_prediction_agent),
+):
+    return await agent.get_pick_of_the_day()

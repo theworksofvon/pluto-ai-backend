@@ -26,7 +26,7 @@ class CommunicationProtocol:
         """
         self.model = model.lower()
         self.config = config
-        self.default_open_ai_model = "gpt-4.1"
+        self.default_open_ai_model = "gpt-4o-mini"
         self.default_deepseek_model = "deepseek-chat"
         self.personality = personality  # Personality of the agent
         self.history: List[Dict[str, str]] = (

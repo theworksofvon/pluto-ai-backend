@@ -1,5 +1,4 @@
 from agency.agent import Agent
-from agency.agency_types import Tendencies
 from services.player_prediction import PlayerPredictionService
 from typing import Dict, Optional, Any, List, Literal
 from adapters import Adapters
@@ -113,7 +112,7 @@ You have web search capabilities. When possible, enrich your predictions with ve
             """,
             tendencies=PLAYER_PREDICTION_PERSONALITY,
             role="pilot",
-            model="openai-gpt-4o-mini",
+            model="openai-gpt-4.1-mini",
             **kwargs,
         )
         self.prediction_service = PlayerPredictionService()
@@ -367,3 +366,24 @@ You have web search capabilities. When possible, enrich your predictions with ve
             f"Prediction response for player {player_name} on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {response}"
         )
         return response
+
+    async def get_pick_of_the_day(self):
+        """Get the pick of the day for the player."""
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        predictions = await self.prediction_service.get_todays_predictions()
+
+        if not predictions:
+            return f"No predictions found for {today}."
+
+        prompt_text = (
+            f"Based on the following predictions for {today}:\n{predictions}\n"
+            "Your task is to construct a 6-leg parlay with the highest probability of success, ensuring that you select picks from at least 2 different teams. "
+            "Each pick should be carefully considered based on the confidence level and available data. "
+            "For each selection, include the following information: 'player_name' (the player's name), 'line' (the PrizePicks line), and 'pick' (over or under). "
+            "Your response should be in JSON format as a list of objects, with each object containing these fields. "
+            "Please ensure the picks are balanced, focusing on maximizing chances for a winning parlay while adhering to the requirement of at least 2 teams."
+        )
+
+        result = await self.prompt(prompt_text)
+        return result

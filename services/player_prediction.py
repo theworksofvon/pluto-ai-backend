@@ -11,6 +11,8 @@ from models.player_analysis_models import PlayerFormAnalysis
 from models.season_stats_model import SeasonStats
 from models.prediction_context import ModelPrediction, AdvancedMetrics
 from models.team_models import VegasFactors, PrizepicksFactors, TeamMatchup
+import pandas as pd
+from supabase import create_client, Client
 
 
 class PlayerPredictionService:
@@ -671,3 +673,16 @@ class PlayerPredictionService:
         """
         # TODO: Implement the assists model prediction
         return None
+
+    async def get_todays_predictions(self):
+        """Get the predictions for the player for today."""
+
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        response = (
+            self.supabase.table("player_predictions")
+            .select("*")
+            .eq("game_date", today)
+            .execute()
+        )
+        return response.data
