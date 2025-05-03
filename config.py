@@ -22,6 +22,36 @@ class Config(BaseSettings):
         default="",
     )
 
+    TWITTER_API_KEY: str = Field(
+        description="Twitter API key",
+        default="",
+    )
+
+    TWITTER_API_SECRET: str = Field(
+        description="Twitter API secret",
+        default="",
+    )
+
+    TWITTER_ACCESS_TOKEN: str = Field(
+        description="Twitter access token",
+        default="",
+    )
+
+    TWITTER_ACCESS_TOKEN_SECRET: str = Field(
+        description="Twitter access token secret",
+        default="",
+    )
+
+    TWITTER_CLIENT_ID: str = Field(
+        description="Twitter client ID",
+        default="",
+    )
+
+    TWITTER_CLIENT_SECRET: str = Field(
+        description="Twitter client secret",
+        default="",
+    )
+
     LLAMA_CLOUD_API_KEY: str = Field(
         description="Llama Cloud API key",
         default="",
