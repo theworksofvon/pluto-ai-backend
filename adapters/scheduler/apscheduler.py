@@ -76,7 +76,13 @@ class APSchedulerAdapter(AbstractScheduler):
         return job_id
 
     def add_interval_job(
-        self, func: Callable, hours: int = 24, seconds: int = 0, minutes: int = 0, job_id: Optional[str] = None, **kwargs
+        self,
+        func: Callable,
+        hours: int = 24,
+        seconds: int = 0,
+        minutes: int = 0,
+        job_id: Optional[str] = None,
+        **kwargs,
     ) -> str:
         """
         Add a job that runs at regular intervals.
@@ -113,7 +119,9 @@ class APSchedulerAdapter(AbstractScheduler):
             "function": func.__name__,
         }
 
-        logger.info(f"Added interval job {job_id} running every {hours} hours and {minutes} minutes and {seconds} seconds")
+        logger.info(
+            f"Added interval job {job_id} running every {hours} hours and {minutes} minutes and {seconds} seconds"
+        )
         return job_id
 
     def remove_job(self, job_id: str) -> bool:

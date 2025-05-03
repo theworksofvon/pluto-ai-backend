@@ -12,7 +12,7 @@ class TwitterAgent(Agent):
     """
     Agent responsible for making posts on twitter.
     """
-    
+
     parser: SchemaJsonParser = None
     twitter_schema: List[FieldSchema] = []
     hashtags: List[str] = []
@@ -55,8 +55,8 @@ Feel free to tweet about anything you want.
 }
 ```
 """,
-        model="openai-gpt-4.1-mini",
-        **kwargs,
+            model="openai-gpt-4.1-mini",
+            **kwargs,
         )
         self.tools = [TwitterTool()]
         self.twitter_schema = [
@@ -67,7 +67,7 @@ Feel free to tweet about anything you want.
         self.adapters = Adapters()
         self.scheduler = self.adapters.scheduler
         self.hashtags = ["prizepicks"]
-        self.model="openai-gpt-4.1-mini",
+        self.model = ("openai-gpt-4.1-mini",)
 
     async def execute_task(self):
         logger.info("Twitter agent is ready for twitter posts")
@@ -86,13 +86,14 @@ Feel free to tweet about anything you want.
         )
         self.scheduler.start()
         logger.info("Twitter agent is running...")
-        
 
     async def search_hashtag_and_respond(self, hashtag: Optional[str] = None):
         tags = [hashtag] if hashtag else self.hashtags
         for tag in tags:
             logger.info(f"Searching for #{tag} tweets...")
-            search_results = await self.tools[0].search_tweets_by_hashtag(tag, max_results=10)
+            search_results = await self.tools[0].search_tweets_by_hashtag(
+                tag, max_results=10
+            )
             if not search_results.success:
                 logger.error(f"Search failed for #{tag}: {search_results.error}")
                 continue
@@ -109,7 +110,7 @@ Feel free to tweet about anything you want.
                 await self.tools[0].execute(message=response_data.get("message"))
             except Exception as e:
                 logger.error(f"Error posting tweet: {e}")
-                
+
     async def random_tweet(self):
         today = datetime.now().strftime("%Y-%m-%d")
         prompt_message = f"Generate a random tweet about anything you'd like. today's date is {today}"

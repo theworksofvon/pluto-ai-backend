@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 from agency.tools import BaseTool, ToolResult
 from requests_oauthlib import OAuth1
 from requests import Request
+import os
 
 
 class TwitterPostParams(BaseModel):
@@ -28,12 +29,12 @@ class TwitterTool(BaseTool):
         self,
         name: str = "Twitter Tool",
         description: str = "A tool for posting and reading tweets to Twitter",
-        api_key: str = "ptxotDO3b38ngty9C9DgJAyEY",
-        api_secret: str = "gWDmjYwqFWWtajaRkyOKwcsOHhLZk5Ybftf3J8YKWW6V3ud617",
-        access_token: str = "1913982468241117184-rv6suhQdsDzfIGx91SN33sPyeyA09S",
-        access_token_secret: str = "aOW6ENlLr1tuiB2i8tsyXSFtMctRnz2NjxeFa1rWZbJMY",
-        client_secret: str = "DYecR-LjV_WNPMsixgqPB_Jyp2jVGUgAWr8_8GF7h5EIU4Du7i",
-        client_id: str = "a0pVSk82aFlHYTBUb2pqVTUzNnU6MTpjaQ",
+        api_key: str = os.getenv("TWITTER_API_KEY"),
+        api_secret: str = os.getenv("TWITTER_API_SECRET"),
+        access_token: str = os.getenv("TWITTER_ACCESS_TOKEN"),
+        access_token_secret: str = os.getenv("TWITTER_ACCESS_TOKEN_SECRET"),
+        client_secret: str = os.getenv("TWITTER_CLIENT_SECRET"),
+        client_id: str = os.getenv("TWITTER_CLIENT_ID"),
     ):
         super().__init__(name=name, description=description)
         self._api_key = api_key
