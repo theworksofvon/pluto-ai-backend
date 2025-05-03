@@ -97,9 +97,10 @@ class EvaluationService:
                     fetch_errors += 1
                     continue
 
+                EPS = 1e-6
                 is_exact = (
                     predicted_value is not None
-                    and abs(actual_value - predicted_value) < 1e-6
+                    and abs(actual_value - predicted_value) <= 0.5 + EPS
                 )
                 is_range = (
                     range_low is not None

@@ -1,5 +1,4 @@
 from agency.agent import Agent
-from agency.agency_types import Tendencies
 from services.game_prediction import GamePredictionService
 from typing import Dict, Optional, Any, List
 from adapters import Adapters

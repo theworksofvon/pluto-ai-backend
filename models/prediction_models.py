@@ -16,6 +16,9 @@ class PredictionRequest(BaseSchema):
     team: Optional[str] = None
     prizepicks_line: Optional[str] = None
     additional_context: Optional[str] = None
+    season_mode: Optional[Literal["regular_season", "playoffs", "finals"]] = (
+        "regular_season"
+    )
 
 
 class PredictionValue(BaseSchema):

@@ -1,9 +1,10 @@
 from typing import Optional
 import aiohttp
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 from agency.tools import BaseTool, ToolResult
 from requests_oauthlib import OAuth1
 from requests import Request
+import os
 
 
 class TwitterPostParams(BaseModel):
@@ -16,21 +17,33 @@ class TwitterPostParams(BaseModel):
 
 
 class TwitterTool(BaseTool):
+    _api_key: str = PrivateAttr()
+    _api_secret: str = PrivateAttr()
+    _access_token: str = PrivateAttr()
+    _access_token_secret: str = PrivateAttr()
+    _api_base: str = PrivateAttr()
+    _client_secret: str = PrivateAttr()
+    _client_id: str = PrivateAttr()
+
     def __init__(
         self,
-        name: str,
-        description: str,
-        api_key: str,
-        api_secret: str,
-        access_token: str,
-        access_token_secret: str,
+        name: str = "Twitter Tool",
+        description: str = "A tool for posting and reading tweets to Twitter",
+        api_key: str = os.getenv("TWITTER_API_KEY"),
+        api_secret: str = os.getenv("TWITTER_API_SECRET"),
+        access_token: str = os.getenv("TWITTER_ACCESS_TOKEN"),
+        access_token_secret: str = os.getenv("TWITTER_ACCESS_TOKEN_SECRET"),
+        client_secret: str = os.getenv("TWITTER_CLIENT_SECRET"),
+        client_id: str = os.getenv("TWITTER_CLIENT_ID"),
     ):
-        super().__init__(name, description)
-        self.api_key = api_key
-        self.api_secret = api_secret
-        self.access_token = access_token
-        self.access_token_secret = access_token_secret
-        self.api_base = "https://api.twitter.com/2"
+        super().__init__(name=name, description=description)
+        self._api_key = api_key
+        self._api_secret = api_secret
+        self._access_token = access_token
+        self._access_token_secret = access_token_secret
+        self._api_base = "https://api.twitter.com/2"
+        self._client_secret = client_secret
+        self._client_id = client_id
 
         self.parameters = {
             "message": {
@@ -46,26 +59,41 @@ class TwitterTool(BaseTool):
             },
         }
 
-    def _generate_signed_headers(self, method: str, url: str, payload: dict) -> dict:
+    def _generate_signed_headers(
+        self, method: str, url: str, payload: dict = None, params: dict = None
+    ) -> dict:
         """
         Generate OAuth1 signed headers for a request.
 
-        :param method: HTTP method (e.g., 'POST')
+        :param method: HTTP method (e.g., 'POST' or 'GET')
         :param url: Full API endpoint URL
-        :param payload: JSON payload for the request
+        :param payload: JSON payload for non-GET requests
+        :param params: Query parameters for GET requests
         :return: Dictionary of signed headers
         """
         # OAuth1 object for signing
         oauth = OAuth1(
-            self.api_key, self.api_secret, self.access_token, self.access_token_secret
+            self._api_key,
+            self._api_secret,
+            self._access_token,
+            self._access_token_secret,
         )
 
-        # Prepare the request and sign it
-        req = Request(method, url, json=payload, auth=oauth)
+        if method.upper() == "GET":
+            req = Request(method, url, params=params, auth=oauth)
+        else:
+            req = Request(method, url, json=payload, auth=oauth)
+
         prepared = req.prepare()
 
-        # Extract signed headers
-        return prepared.headers
+        # Convert headers to a dict with string keys/values in case any are bytes
+        headers = {
+            (k.decode("utf-8") if isinstance(k, bytes) else k): (
+                v.decode("utf-8") if isinstance(v, bytes) else v
+            )
+            for k, v in prepared.headers.items()
+        }
+        return headers
 
     def validate_input(self, message: str, media_url: Optional[str] = None) -> bool:
         try:
@@ -73,6 +101,81 @@ class TwitterTool(BaseTool):
             return True
         except Exception:
             return False
+
+    async def read_tweets(self, user_id: str, max_results: int = 5) -> ToolResult:
+        """Read tweets from a user's timeline using the Twitter API."""
+        try:
+            url = f"{self._api_base}/users/{user_id}/tweets"
+            params = {"max_results": max_results}
+            headers = self._generate_signed_headers("GET", url, params=params)
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=headers, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return ToolResult(
+                            success=True,
+                            data=data,
+                            metadata={"fetched_tweets": len(data.get("data", []))},
+                        )
+                    else:
+                        error_data = await response.json()
+                        return ToolResult(
+                            success=False, data=None, error=str(error_data)
+                        )
+        except Exception as e:
+            return ToolResult(success=False, data=None, error=str(e))
+
+    async def get_mentions(self, user_id: str, max_results: int = 5) -> ToolResult:
+        """Retrieve tweets that mention the specified user using the Twitter API."""
+        try:
+            url = f"{self._api_base}/users/{user_id}/mentions"
+            params = {"max_results": max_results}
+            headers = self._generate_signed_headers("GET", url, params=params)
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=headers, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return ToolResult(
+                            success=True,
+                            data=data,
+                            metadata={"mention_count": len(data.get("data", []))},
+                        )
+                    else:
+                        error_data = await response.json()
+                        return ToolResult(
+                            success=False, data=None, error=str(error_data)
+                        )
+        except Exception as e:
+            return ToolResult(success=False, data=None, error=str(e))
+
+    async def search_tweets_by_hashtag(
+        self, hashtag: str, max_results: int = 10
+    ) -> ToolResult:
+        """Search for recent tweets containing the specified hashtag using the Twitter API."""
+        try:
+            url = f"{self._api_base}/tweets/search/recent"
+            search_query = hashtag if hashtag.startswith("#") else f"#{hashtag}"
+            params = {"query": search_query, "max_results": max_results}
+            headers = self._generate_signed_headers("GET", url, params=params)
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=headers, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return ToolResult(
+                            success=True,
+                            data=data,
+                            metadata={"tweet_count": len(data.get("data", []))},
+                        )
+                    else:
+                        error_data = await response.json()
+                        return ToolResult(
+                            success=False, data=None, error=str(error_data)
+                        )
+        except Exception as e:
+            return ToolResult(success=False, data=None, error=str(e))
 
     async def execute(
         self, message: str, media_url: Optional[str] = None
@@ -85,9 +188,9 @@ class TwitterTool(BaseTool):
         :return: ToolResult containing success status and response data
         """
         try:
-            params = TwitterPostParams(message=message, media_url=media_url)
-            url = f"{self.api_base}/tweets"
-            payload = {"text": params.message}
+            params_model = TwitterPostParams(message=message, media_url=media_url)
+            url = f"{self._api_base}/tweets"
+            payload = {"text": params_model.message}
 
             # Get signed headers
             headers = self._generate_signed_headers("POST", url, payload)

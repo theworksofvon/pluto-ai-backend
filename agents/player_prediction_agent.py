@@ -1,7 +1,6 @@
 from agency.agent import Agent
-from agency.agency_types import Tendencies
 from services.player_prediction import PlayerPredictionService
-from typing import Dict, Optional, Any, List
+from typing import Dict, Optional, Any, List, Literal
 from adapters import Adapters
 from adapters.db.abstract_uow import AbstractUnitOfWork
 from adapters.scheduler import AbstractScheduler
@@ -57,47 +56,63 @@ class PlayerPredictionAgent(Agent):
         super().__init__(
             name="PlayerPredictionAgent",
             instructions="""
-You are Pluto, an elite NBA player-points prediction model renowned for your accuracy and analytical depth. Your predictions must be highly precise, data-driven, insightful, and accompanied by detailed reasoning to demonstrate comprehensive understanding.
+You are Pluto, an elite agentic AI specializing in NBA player points predictions, with a particular focus on accurately forecasting Over/Under outcomes for player props. You are built for extreme accuracy, deep analytical reasoning, and clear, data-supported explanations.
 
-To maximize prediction accuracy, systematically evaluate these critical factors:
+Your primary objectives are:
+1. Maximize prediction accuracy through rigorous, multi-factor analysis.
+2. Justify every prediction with detailed, transparent reasoning based on verifiable data.
+3. Identify actionable insights for Over/Under betting decisions.
+
+Always systematically evaluate the following dimensions:
 
 Player Performance Metrics:
+- Analyze recent scoring trends, field-goal percentage, three-point shooting accuracy, free-throw efficiency.
+- Evaluate player usage rate, minutes played trajectory, shot volume, and offensive role.
+- Incorporate advanced shooting metrics (effective field goal %, true shooting %).
 
-Recent scoring form, field-goal percentage, three-point shooting accuracy, and free-throw efficiency.
+Matchup and Opponent Analysis:
+- Compare historical player performance against the current opponent.
+- Assess individual defender matchups, defensive schemes, and positional vulnerabilities.
+- Account for opponent defensive rating, pace of play, and recent defensive form.
+- Analyze player position vs. opponent positional defensive efficiency.
 
-Player usage rate, minutes played trends, and offensive role within the team.
+Market and Betting Signals:
+- Integrate Vegas player prop lines, team totals, betting over/unders, and implied probabilities.
+- Detect unusual market movement or betting volume patterns.
+- Adjust predictions based on market consensus strength.
 
-Advanced Matchup Analysis:
+Contextual and Environmental Factors:
+- Consider injury reports, teammate absences, starting lineups, rotations, and coaching strategies.
+- Adjust for home vs. away splits, travel fatigue, back-to-backs, and rest advantages.
+- Incorporate motivational factors such as playoff positioning, rivalries, or elimination games.
 
-Historical performance versus the specific opponent, noting defensive strategies, individual defender assignments, and positional vulnerabilities.
+Historical and Long-Term Trends:
+- Examine season averages, scoring volatility, and consistency patterns.
+- Cross-reference game logs under comparable matchup types and conditions.
 
-Defensive rating and pace of play of the opponent team.
+Prediction Requirements:
+- Explicitly state the final predicted points value, low-high prediction range (no wider than 5 points unless necessary), and a confidence rating (0-1).
+- Clearly state the Over/Under recommendation relative to the PrizePicks line.
+- Provide a detailed, logically ordered explanation referencing critical data points and context.
+- Always follow strict chain-of-thought reasoning — explain your decision process step-by-step.
 
-Comparative analysis of player position vs. opponents defensive efficiency.
+Formatting Requirements:
+- Start with a one-sentence summary prediction.
+- Follow with a bullet-point breakdown of major supporting factors.
+- End with a final Over/Under verdict including confidence level.
 
-Vegas Betting Lines & Market Signals:
-
-Current Vegas player props, betting lines, over/under points totals, and implied probability.
-
-Significant betting market shifts or unusual betting volume as predictive indicators.
-
-Comprehensive Seasonal and Historical Trends:
-
-Full-season statistical averages, scoring volatility, and consistency metrics.
-
-Home vs. away game performance splits and impact of travel/rest days.
-
-Game and Player Contextual Insights:
-
-Current injury reports, teammate absences, rotation adjustments, and coaching decisions.
-
-Impact of game significance, rivalry intensity, playoff positioning, and motivational factors.
-
-When presenting predictions, provide clear and detailed explanations of your analytical thought process, explicitly highlighting critical data points, predictive signals, and strategic insights influencing your forecast. Always support your analysis with specific statistics and contextual factors to reinforce confidence in your prediction.
+Important Behavior Rules:
+- Be objective, rigorous, and transparent.
+- Never fabricate statistics or trends.
+- Communicate uncertainty clearly if predictive signals conflict.
+- Prioritize predictive signal over noise.
+- If the player is ruled out or injured, still respond using the schema but clearly explain the situation in the fields.
+- ALWAYS RESPOND IN THE STRICTLY SPECIFIED JSON FORMAT.
+You have web search capabilities. When possible, enrich your predictions with verified news, late-breaking injury updates, and betting market shifts. If no useful information is found, rely on core statistical and historical analysis.
             """,
             tendencies=PLAYER_PREDICTION_PERSONALITY,
             role="pilot",
-            model="openai-gpt-4o-mini",
+            model="openai-gpt-4.1-mini",
             **kwargs,
         )
         self.prediction_service = PlayerPredictionService()
@@ -193,6 +208,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
         team: Optional[str] = None,
         prizepicks_line: Optional[str] = None,
         additional_context: Optional[str] = None,
+        season_mode: Literal["regular_season", "playoffs", "finals"] = "regular_season",
     ) -> PlayerPredictionResponse:
         """
         Predict a player's performance using an agent.
@@ -200,6 +216,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
         Args:
             player_name: Name of the player.
             opposing_team: Name of opposing team.
+            season_mode: Mode of the season (regular_season, playoffs, finals).
             prediction_type: Type of prediction (points, rebounds, assists, etc.).
 
         Returns:
@@ -211,6 +228,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
             prediction_type=prediction_type,
             model_type=prediction_type,
             additional_context=additional_context,
+            season_mode=season_mode,
         )
         logger.info(f"Agent Context: {context}")
 
@@ -273,6 +291,7 @@ When presenting predictions, provide clear and detailed explanations of your ana
 
         Args:
             context: Full data context prepared by the prediction service
+            prizepicks_line: The current PrizePicks line for the player
 
         Returns:
             String response from LLM with prediction data
@@ -280,46 +299,65 @@ When presenting predictions, provide clear and detailed explanations of your ana
         player_name = context.player
         prediction_type = context.prediction_type
         opposing_team = context.game.opposing_team
-        # Convert NumPy types before JSON serialization
+        season_mode = context.season_mode
+
         safe_context = json.dumps(convert_numpy_types(context)).replace("'", "")
 
+        playoff_context = (
+            "Because it is the NBA Playoffs, consider that teams are highly motivated, rotations tighten, and star players often play heavier minutes. "
+            "Weigh recent performance, matchup importance, and coaching behavior accordingly.\n\n"
+        )
+        finals_context = (
+            "Because it is the NBA Finals, assume maximum motivation, maximum minutes for starters, and extremely short rotations. "
+            "Teams will fully optimize matchups and coaching adjustments will be aggressive. "
+            "Clutch performance under pressure, historical Finals experience, and mental toughness should be considered. "
+            "Weigh recent Finals performance more heavily than season-long or even playoff trends. "
+            "Blowouts are less common — expect games to be tightly contested.\n\n"
+        )
+        regular_season_context = (
+            "Because it is the NBA Regular Season, consider that teams may manage player minutes based on rest schedules, injuries, or playoff positioning. "
+            "Weigh recent performance trends carefully, and be mindful of back-to-back games, travel fatigue, and potential rest days when projecting minutes and production.\n\n"
+        )
+        season_context_note = (
+            finals_context
+            if season_mode == "finals"
+            else (
+                playoff_context if season_mode == "playoffs" else regular_season_context
+            )
+        )
+
         prompt = (
-            f"You are Pluto, an expert NBA analytics model. Your task is to accurately predict"
-            f"Use statistical reasoning and weigh recent trends more heavily than season averages if there is a strong deviation. Favor matchups and recent minutes played when uncertainty is high. Only include values that are well-supported by the data. Prioritize predictive signal over noise."
-            f"Because it is the NBA Play-Offs, consider that teams could potentially be highly motivated and rotations are likely to tighten. Starters may play heavier minutes, and coaches will prioritize winning over player rest. Weigh recent performance, matchup importance, and coaching tendencies accordingly when making your prediction."
-            f"**Tool usage**: First, call the web search tool to fetch the very latest news, injury updates, and game recaps for {player_name} from reputable sports sites. Gather at least 3 of the most recent articles (include title, source name, and URL)."
-            f"Then, use the web search results to inform your prediction. If there is no relevant information, just say 'No relevant information found'."
-            f"You can also use the web search tool to find information about the {opposing_team} and their players."
-            f"Finally, you can use the web search tool to find any verified gossip/rumors about the players and the team. Anything that you think will affect the points of {player_name}. Do not make up any information, only use the information that you find that has been verified by a reputable source."
-            f"REMINDER: Only use information thats relevant to current date and time. {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            f"Here is all the relevant data:"
-            f"how many {prediction_type} the player {player_name} will record against the {opposing_team}.\n\n"
-            f"The PrizePicks line is at {prizepicks_line} points for {player_name}.\n\n"
-            "Here is the structured data you should analyze (JSON format):\n"
+            f"You are Pluto, an expert NBA analytics model. Your task is to accurately predict the number of {prediction_type} {player_name} will record against the {opposing_team}.\n\n"
+            f"Use rigorous statistical reasoning and weigh recent trends more heavily than season averages if deviations are significant. When uncertainty is high, favor matchup quality and recent minutes played. Only include values supported by strong data. Prioritize predictive signal over noise.\n\n"
+            f"{season_context_note}"
+            f"**Tool Usage**: First, call the web search tool to fetch the latest news, injury reports, and game recaps for {player_name} from reputable sports sites. Gather at least three recent articles (include title, source, and URL). If no relevant information is found, say 'No relevant information found.'\n"
+            f"Optionally search for updates about the {opposing_team} or verified rumors that may affect {player_name}'s points projection.\n\n"
+            f"REMINDER: Only use information that is timely and relevant to {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.\n\n"
+            f"Here is the structured game and player data you must analyze (JSON format):\n"
+            f"The PrizePicks line is at {prizepicks_line} {prediction_type} for {player_name}.\n\n"
             f"{safe_context}\n\n"
-            "Pay close attention to the 'historical_predictions' section within the data. This shows your past predictions for this exact matchup and the actual results. Analyze your past performance, noting any discrepancies, and use this analysis to refine your current prediction and reasoning.\n\n"
-            "Based on the provided data, strictly follow this JSON response schema:\n"
-            "A reasonable prediction range (low-high) that is no wider than 5 points unless absolutely necessary, based on the data."
+            f"Pay close attention to the 'historical_predictions' section. Analyze your past predictions for similar matchups, note any discrepancies between forecast and actual result, and refine your current prediction accordingly.\n\n"
+            f"***IMPORTANT***: Based on all inputs, return ONLY in the following strict JSON format:\n"
             "```json\n"
             "{\n"
             '  "value": float,\n'
             '  "range_low": float,\n'
             '  "range_high": float,\n'
             '  "confidence": float (0 to 1),\n'
-            '  "explanation": string (avoid using apostrophes to ensure valid JSON)\n'
+            '  "explanation": string (avoid using apostrophes to ensure valid JSON),\n'
             '  "prizepicks_line": "over" or "under",\n'
-            '  "prizepicks_reason": "Reasoning for the line choice"\n'
-            '  "additional_context": "Any additional context that you think is relevant to the prediction, this could be any gossip/rumors you found that are verified or relevant articles"\n'
+            '  "prizepicks_reason": string (explaining why you chose over/under based on the line),\n'
+            '  "additional_context": string (optional; verified rumors or news found during search)\n'
             "}\n"
             "```\n\n"
-            f"*****REMINDER: Always respond in the appropriate format if a player is injured or not playing, but provide the reason for your prediction.*****"
-            "In your explanation, provide detailed reasoning covering:\n"
+            f"If {player_name} is ruled out or injured, still respond using the schema but clearly explain the situation in the fields.\n\n"
+            "In your explanation, address these critical factors:\n"
             "1. Recent player performance trends\n"
-            "2. Historical matchup performance\n"
-            "3. Impact of Vegas odds and betting lines\n"
-            "4. Season-long statistical insights and advanced metrics\n"
-            "5. Contextual factors (e.g., injuries, rotations, importance of the game)\n"
-            "6. Over/Under on the PrizePicks line and why.\n"
+            "2. Historical performance versus the opponent\n"
+            "3. Vegas odds and betting market signals\n"
+            "4. Season-long and advanced statistical insights\n"
+            "5. Contextual factors (injuries, rotations, motivation)\n"
+            "6. Clear Over/Under recommendation for PrizePicks line\n"
         )
 
         logger.info(f"Prediction prompt: {prompt}")
@@ -328,3 +366,24 @@ When presenting predictions, provide clear and detailed explanations of your ana
             f"Prediction response for player {player_name} on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {response}"
         )
         return response
+
+    async def get_pick_of_the_day(self):
+        """Get the pick of the day for the player."""
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        predictions = await self.prediction_service.get_todays_predictions()
+
+        if not predictions:
+            return f"No predictions found for {today}."
+
+        prompt_text = (
+            f"Based on the following predictions for {today}:\n{predictions}\n"
+            "Your task is to construct a 6-leg parlay with the highest probability of success, ensuring that you select picks from at least 2 different teams. "
+            "Each pick should be carefully considered based on the confidence level and available data. "
+            "For each selection, include the following information: 'player_name' (the player's name), 'line' (the PrizePicks line), and 'pick' (over or under). "
+            "Your response should be in JSON format as a list of objects, with each object containing these fields. "
+            "Please ensure the picks are balanced, focusing on maximizing chances for a winning parlay while adhering to the requirement of at least 2 teams."
+        )
+
+        result = await self.prompt(prompt_text)
+        return result

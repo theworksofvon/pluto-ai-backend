@@ -2,8 +2,8 @@ import os
 from adapters import Adapters
 import resend
 from datetime import datetime
-from logger import logger
 from config import config
+import asyncio
 
 
 class UserService:
@@ -28,7 +28,7 @@ class UserService:
                     "html": html_content,
                 }
                 resend.Emails.send(message)
-
+                await asyncio.sleep(0.5)  # api rate limit of 2 emails per second
         return {"status": "Prediction notifications sent"}
 
     async def send_game_prediction_notifs(self):
@@ -80,7 +80,7 @@ class UserService:
                         </div>
                         <p style="font-size: 12px; color: #777;">
                             This message was sent to you by Pluto Predicts.<br>
-                            Unsubscribe <a href="{unsubscribe_link}" style="color: #6366f1;">here</a> if you’d prefer not to receive daily emails.
+                            Unsubscribe <a href="{unsubscribe_link}" style="color: #6366f1;">here</a> if you'd prefer not to receive daily emails.
                         </p>
                     </td>
                 </tr>
@@ -119,7 +119,7 @@ class UserService:
                     <td style="padding: 24px; color: #333;">
                         <h2 style="margin-top: 0;">🔥 Pick of the Day</h2>
                         <p style="font-size: 16px; line-height: 1.6;">
-                            Our AI models have analyzed today’s matchups and identified the top edge on the board:
+                            Our AI models have analyzed today's matchups and identified the top edge on the board:
                         </p>
 
                         <div style="background-color: #f1f5f9; border-left: 4px solid #6366f1; padding: 16px; margin: 16px 0; border-radius: 8px;">

@@ -46,7 +46,13 @@ class AbstractScheduler(ABC):
 
     @abstractmethod
     def add_interval_job(
-        self, func: Callable, hours: int = 24, job_id: Optional[str] = None, **kwargs
+        self,
+        func: Callable,
+        hours: int = 24,
+        seconds: int = 0,
+        minutes: int = 0,
+        job_id: Optional[str] = None,
+        **kwargs,
     ) -> str:
         """
         Add a job that runs at regular intervals.
@@ -54,6 +60,8 @@ class AbstractScheduler(ABC):
         Args:
             func: The function to run
             hours: Hours between runs
+            seconds: Seconds between runs
+            minutes: Minutes between runs
             job_id: Optional unique identifier for the job
             **kwargs: Additional arguments to pass to the function
 

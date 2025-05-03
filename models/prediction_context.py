@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any, Union, Literal
 from pydantic import Field, ConfigDict
 from datetime import datetime
 from models import BaseSchema
@@ -51,5 +51,6 @@ class PredictionContext(BaseSchema):
     raw_data: Optional[PlayerStats] = None
     timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
     additional_context: Optional[str] = None
+    season_mode: Literal["regular_season", "playoffs", "finals"]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
