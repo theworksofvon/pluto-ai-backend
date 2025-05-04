@@ -5,6 +5,7 @@ from agency.tools import BaseTool, ToolResult
 from requests_oauthlib import OAuth1
 from requests import Request
 import os
+from logger import logger
 
 
 class TwitterPostParams(BaseModel):
@@ -99,7 +100,8 @@ class TwitterTool(BaseTool):
         try:
             TwitterPostParams(message=message, media_url=media_url)
             return True
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error validating input: {e}")
             return False
 
     async def read_tweets(self, user_id: str, max_results: int = 5) -> ToolResult:
@@ -124,6 +126,7 @@ class TwitterTool(BaseTool):
                             success=False, data=None, error=str(error_data)
                         )
         except Exception as e:
+            logger.error(f"Error reading tweets: {e}")
             return ToolResult(success=False, data=None, error=str(e))
 
     async def get_mentions(self, user_id: str, max_results: int = 5) -> ToolResult:
@@ -148,6 +151,7 @@ class TwitterTool(BaseTool):
                             success=False, data=None, error=str(error_data)
                         )
         except Exception as e:
+            logger.error(f"Error getting mentions: {e}")
             return ToolResult(success=False, data=None, error=str(e))
 
     async def search_tweets_by_hashtag(
@@ -175,6 +179,7 @@ class TwitterTool(BaseTool):
                             success=False, data=None, error=str(error_data)
                         )
         except Exception as e:
+            logger.error(f"Error searching tweets by hashtag: {e}")
             return ToolResult(success=False, data=None, error=str(e))
 
     async def execute(
@@ -216,4 +221,5 @@ class TwitterTool(BaseTool):
                         )
 
         except Exception as e:
+            logger.error(f"Error posting tweet: {e}")
             return ToolResult(success=False, data=None, error=str(e))
