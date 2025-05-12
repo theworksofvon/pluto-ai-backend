@@ -4,8 +4,59 @@ from logger import logger
 from utils import SchemaJsonParser, FieldSchema, FieldType
 from adapters.scheduler import AbstractScheduler
 from adapters import Adapters
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
+from agency.retrievers.retriever import BaseRetriever
+from llama_index.llms.openai import OpenAI
+from config import config
+from shared.personality import PLUTO_PERSONALITY
+
+
+class TwitterRetriever(BaseRetriever):
+    def __init__(self, **kwargs):
+        llm = OpenAI(
+            api_key=config.OPENAI_API_KEY_OAI,
+            model="gpt-4o-mini",
+            temperature=0.7,
+            max_tokens=1000,
+            system_prompt=PLUTO_PERSONALITY
+            + """
+*****IMPORTANT*****: YOUR RESPONSE MUST BE IN THE FOLLOWING JSON FORMAT
+{
+    "message": "string", // The tweet content to post
+    "media_url": "string" // Optional URL to media to attach to the tweet
+}
+
+Guidelines:
+- USE THE USER/ASSISTANT TONE OF THE TWEETS AS INSPIRATION FOR HOW YOU SHOULD BE TWEETING
+- YOUR TWEETS SHOULD BE SHORT AND CONCISE, ONE OR TWO SENTENCES MAX
+- YOUR TWEETS SHOULD BE IN ALL LOWER CASE AND NOT CAPITALIZED
+- YOUR TWEETS SHOULD BE WRITTEN AS IF YOU ARE TWEETING FROM YOUR PERSONAL TWITTER ACCOUNT
+- YOUR TWEETS SHOULD NOT ALWAYS FOLLOW CORRECT PUNCTUATION
+- Keep tweets engaging, confident, and playful
+- Make predictions clear and concise
+- Add value to bettors and followers
+- Be funny and amusing when appropriate
+- NEVER USE HASHTAGS
+- BE CUTTING EDGE, DONT SOUND LIKE A BORING LLM
+- USE THE TONE OF THE TWEETS IN THE FILE AS INSPIRATION, SOUND LIKE A REGULAR PERSON TWEETING, NOT AN LLM
+- Always return valid JSON matching the specified format""",
+        )
+        super().__init__(llm=llm, **kwargs)
+        self.vector_index = None
+
+    async def load_twitter_data(
+        self, file_path: str = "shared/ollama_conversations_refined_output.pdf"
+    ):
+        try:
+            documents = await self.parse_documents([file_path], ".pdf")
+            if documents:
+                self.vector_index = self.create_vector_store(documents)
+                return self.vector_index
+            return None
+        except Exception as e:
+            logger.error(f"Error loading Twitter data: {str(e)}")
+            raise
 
 
 class TwitterAgent(Agent):
@@ -58,7 +109,16 @@ Feel free to tweet about anything you want.
             model="openai-gpt-4.1-mini",
             **kwargs,
         )
-        self.tools = [TwitterTool()]
+        self.tools = [
+            TwitterTool(
+                api_key=config.JA_MORANTS_TRIGGER_FINGER_TWITTER_API_KEY,
+                api_secret=config.JA_MORANTS_TRIGGER_FINGER_TWITTER_API_SECRET,
+                access_token=config.JA_MORANTS_TRIGGER_FINGER_TWITTER_ACCESS_TOKEN,
+                access_token_secret=config.JA_MORANTS_TRIGGER_FINGER_TWITTER_ACCESS_TOKEN_SECRET,
+                client_id=config.JA_MORANTS_TRIGGER_FINGER_TWITTER_CLIENT_ID,
+                client_secret=config.JA_MORANTS_TRIGGER_FINGER_TWITTER_CLIENT_SECRET,
+            )
+        ]
         self.twitter_schema = [
             FieldSchema(name="message", type=FieldType.STRING, required=True),
             FieldSchema(name="media_url", type=FieldType.STRING, required=False),
@@ -67,7 +127,8 @@ Feel free to tweet about anything you want.
         self.adapters = Adapters()
         self.scheduler = self.adapters.scheduler
         self.hashtags = ["prizepicks"]
-        self.model = ("openai-gpt-4.1-mini",)
+        self.model = "openai-gpt-4.1-mini"
+        self.retrievers = [TwitterRetriever()]
 
     async def execute_task(self):
         logger.info("Twitter agent is ready for twitter posts")
@@ -111,13 +172,41 @@ Feel free to tweet about anything you want.
             except Exception as e:
                 logger.error(f"Error posting tweet: {e}")
 
-    async def random_tweet(self):
+    async def random_tweet(
+        self, version: Literal["v1", "v2"] = "v2", file_path: Optional[str] = None
+    ):
         today = datetime.now().strftime("%Y-%m-%d")
-        prompt_message = f"Generate a random tweet about anything you'd like. today's date is {today}"
-        response = await self.prompt(prompt_message, web_search=True)
-        response_data = self.parser.parse(response)
-        logger.info(f"Response data: {response_data}")
+        prompt_message = f"Generate a random tweet about anything you'd like, today's date is {today}"
+
         try:
+            if version == "v2":
+                retriever = self.retrievers[0]
+                default_file_path = "shared/ollama_conversations_refined_output.pdf"
+                actual_file_path = file_path if file_path else default_file_path
+
+                logger.info(f"Loading Twitter data from: {actual_file_path}")
+                await retriever.load_twitter_data(actual_file_path)
+
+                response = retriever.query(prompt_message)
+                logger.info(f"Retriever response: {response}")
+                response_str = response.get("response", "")
+                response_data = self.parser.parse(response_str)
+            elif version == "v1":
+                response = await self.prompt(prompt_message, web_search=True)
+                logger.info(f"Prompt response: {response}")
+                response_data = self.parser.parse(response)
+
+            logger.info(f"Parsed response data: {response_data}")
+
+            await self.tools[0].execute(message=response_data.get("message"))
+            logger.info(f"Tweet posted successfully: {response_data.get('message')}")
+
+        except ValueError as ve:
+            logger.error(f"Value error in random_tweet: {str(ve)}")
+            logger.info("Falling back to v1 (direct prompt) method")
+            response = await self.prompt(prompt_message, web_search=True)
+            response_data = self.parser.parse(response)
             await self.tools[0].execute(message=response_data.get("message"))
         except Exception as e:
-            logger.error(f"Error posting tweet: {e}")
+            logger.error(f"Error in random_tweet: {str(e)}")
+            raise

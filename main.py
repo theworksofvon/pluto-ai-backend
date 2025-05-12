@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from connections import Connections
 from routers import router
 from agency import Agency
-from agents import PlayerPredictionAgent, GamePredictionAgent, TwitterAgent
+from agents import PlayerPredictionAgent, GamePredictionAgent, TwitterAgent, RogueAgent
 from logger import logger
 
 app = FastAPI(
@@ -35,10 +35,13 @@ app.include_router(router)
 async def startup():
     logger.info(f"Starting Pluto AI API")
     await Connections.create_connections()
-    agency = Agency([PlayerPredictionAgent(), GamePredictionAgent(), TwitterAgent()])
+    agency = Agency(
+        [PlayerPredictionAgent(), GamePredictionAgent(), TwitterAgent(), RogueAgent()]
+    )
     await agency.agents["PlayerPredictionAgent"].execute_task()
     await agency.agents["GamePredictionAgent"].execute_task()
     await agency.agents["PlutoPredictsTwitterAgent"].execute_task()
+    await agency.agents["RogueAgent"].execute_task()
     logger.info(f"Agency initialized successfully and running, {agency}")
 
 

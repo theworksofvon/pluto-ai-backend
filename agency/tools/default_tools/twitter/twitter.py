@@ -6,6 +6,7 @@ from requests_oauthlib import OAuth1
 from requests import Request
 import os
 from logger import logger
+import traceback
 
 
 class TwitterPostParams(BaseModel):
@@ -193,33 +194,58 @@ class TwitterTool(BaseTool):
         :return: ToolResult containing success status and response data
         """
         try:
+            if not message:
+                logger.error("Cannot post tweet: message is empty")
+                return ToolResult(success=False, data=None, error="Message cannot be empty")
+
             params_model = TwitterPostParams(message=message, media_url=media_url)
             url = f"{self._api_base}/tweets"
             payload = {"text": params_model.message}
 
             # Get signed headers
             headers = self._generate_signed_headers("POST", url, payload)
+            logger.info(f"Attempting to post tweet with payload: {payload}")
 
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     url=url, headers=headers, json=payload
                 ) as response:
+                    response_text = await response.text()
+                    logger.info(f"Twitter API response status: {response.status}")
+                    logger.info(f"Twitter API response body: {response_text}")
+
                     if response.status == 201:
-                        data = await response.json()
-                        return ToolResult(
-                            success=True,
-                            data={
-                                "tweet_id": data["data"]["id"],
-                                "text": data["data"]["text"],
-                            },
-                            metadata={"created_at": data["data"].get("created_at")},
-                        )
+                        try:
+                            data = await response.json()
+                            result = ToolResult(
+                                success=True,
+                                data={
+                                    "tweet_id": data["data"]["id"],
+                                    "text": data["data"]["text"],
+                                },
+                                metadata={"created_at": data["data"].get("created_at")},
+                            )
+                            logger.info(f"Successfully posted tweet: {result}")
+                            return result
+                        except Exception as json_error:
+                            logger.error(f"Error parsing successful response: {json_error}")
+                            return ToolResult(
+                                success=False, 
+                                data=None, 
+                                error=f"Error parsing response: {json_error}"
+                            )
                     else:
-                        error_data = await response.json()
-                        return ToolResult(
-                            success=False, data=None, error=str(error_data)
-                        )
+                        try:
+                            error_data = await response.json()
+                            error_msg = f"Twitter API error: {error_data}"
+                        except:
+                            error_msg = f"Twitter API error: Status {response.status}, Response: {response_text}"
+                        
+                        logger.error(error_msg)
+                        return ToolResult(success=False, data=None, error=error_msg)
 
         except Exception as e:
-            logger.error(f"Error posting tweet: {e}")
-            return ToolResult(success=False, data=None, error=str(e))
+            error_msg = f"Error posting tweet: {str(e)}"
+            logger.error(error_msg)
+            logger.error(f"Full error details: {traceback.format_exc()}")
+            return ToolResult(success=False, data=None, error=error_msg)

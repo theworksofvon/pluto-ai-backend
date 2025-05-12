@@ -81,8 +81,7 @@ class Agent(BaseModel, ABC):
         base_instructions = (
             self.instructions() if callable(self.instructions) else self.instructions
         )
-        tendencies_description = f"You're Tendecies are: {str(self.tendencies)}, ranking system for tendecies is from 0 (lowest) to 1 (highest)"
-        return f"{base_instructions} : {tendencies_description}"
+        return f"{base_instructions}"
 
     # TODO : Maybe remove this
     async def reinforce_personality(self) -> bool:

@@ -85,56 +85,17 @@ def prepare_conversations(data):
     return {"conversations": conversations}
 
 
-# def prepare_conversations(data):
-#     conversations = []
-#     for name, season, poss, mp, raptor_total, war_total, pred_off, pred_def, pred_total, pace in zip(
-#         data['player_name'], data['season'], data['poss'], data['mp'],
-#         data['raptor_total'], data['war_total'],
-#         data['predator_offense'], data['predator_defense'], data['predator_total'],
-#         data['pace_impact']
-#     ):
-#         conversations.append([
-#             {"role": "user": f"What were {name}'s key stats in {season}?"},
-#             {"role": "assistant": (
-#                 f"In {season}, {name} played {mp} minutes with {poss} possessions. "
-#                 f"They had a RAPTOR score of {raptor_total}, a WAR total of {war_total}, and a "
-#                 f"Predator score of {pred_total} (Offense: {pred_off}, Defense: {pred_def}). "
-#                 f"Their pace impact was {pace}."
-#             )},
-#              {"role": "user": (
-#                 f"How does {name}'s performance in {season} compare to their previous seasons for betting predictions?"
-#             )},
-#             {"role": "assistant": (
-#                 f"{name}'s performance in {season} showed a RAPTOR score of {raptor_total} and WAR total of {war_total}. "
-#                 f"Compared to previous seasons, their offensive Predator score ({pred_off}) and defensive Predator score ({pred_def}) "
-#                 f"suggest a {'strong improvement' if pred_total > 0 else 'decline'} in impact. "
-#                 f"This may indicate they are {'a valuable asset' if war_total > 0 else 'underperforming'} for betting predictions."
-#             )},
-#               {"role": "user": (
-#                 f"How can I use {name}'s stats from {season} to predict whether their team will win an upcoming game?"
-#             )},
-#             {"role": "assistant": (
-#                 f"{name}'s stats from {season} highlight a RAPTOR score of {raptor_total} and WAR total of {war_total}. "
-#                 f"Their Predator metrics (Offense: {pred_off}, Defense: {pred_def}) suggest their impact on both ends of the court. "
-#                 f"Consider matchups where the opposing team's defense struggles against high-paced players (Pace Impact: {pace}). "
-#                 f"Teams relying on {name} for scoring or defensive support may outperform slower-paced or injury-laden opponents."
-#             )}
-#         ])
-#     return {"conversations": conversations}
-
 dataset = dataset.map(prepare_conversations, batched=True, batch_size=100)
 
 
 from unsloth.chat_templates import get_chat_template
 
-# Apply the chat template
 tokenizer = get_chat_template(
     tokenizer,
     chat_template="llama-3.1",
 )
 
 
-# Format the prompts
 def formatting_prompts_func(examples):
     convos = examples["conversations"]
     texts = [
@@ -151,7 +112,6 @@ dataset = dataset.map(formatting_prompts_func, batched=True)
 print(dataset[0])
 
 
-# Train the model
 from trl import SFTTrainer
 from transformers import TrainingArguments, DataCollatorForSeq2Seq
 from unsloth import is_bfloat16_supported
