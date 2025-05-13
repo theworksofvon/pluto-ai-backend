@@ -9,10 +9,10 @@ import os
 class WebSearchTool(BaseTool):
     name: str = "Web Search"
     description: str = "Search the web for information using Serper API"
+    api_key: str = os.getenv("SERPER_API_KEY")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.api_key = os.getenv("SERPER_API_KEY")
         self.parameters = {
             "query": {
                 "type": "string",

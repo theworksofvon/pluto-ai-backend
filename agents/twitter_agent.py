@@ -4,12 +4,13 @@ from logger import logger
 from utils import SchemaJsonParser, FieldSchema, FieldType
 from adapters.scheduler import AbstractScheduler
 from adapters import Adapters
-from typing import Optional, List, Literal
+from typing import Optional, List
 from datetime import datetime
 from agency.retrievers.retriever import BaseRetriever
 from llama_index.llms.openai import OpenAI
 from config import config
 from shared.personality import PLUTO_PERSONALITY
+from schemas import TweetSchema
 
 
 class TwitterRetriever(BaseRetriever):
@@ -107,7 +108,7 @@ Feel free to tweet about anything you want.
 }
 ```
 """,
-            model="openai-gpt-4.1-mini",
+            model="grok",
             **kwargs,
         )
         self.tools = [
@@ -128,7 +129,6 @@ Feel free to tweet about anything you want.
         self.adapters = Adapters()
         self.scheduler = self.adapters.scheduler
         self.hashtags = ["prizepicks"]
-        self.model = "openai-gpt-4.1-mini"
         self.retrievers = [TwitterRetriever()]
 
     async def execute_task(self):
@@ -173,28 +173,13 @@ Feel free to tweet about anything you want.
             except Exception as e:
                 logger.error(f"Error posting tweet: {e}")
 
-    async def random_tweet(self, file_path: Optional[str] = None):
-        today = datetime.now().strftime("%Y-%m-%d")
-        prompt_message = f"Generate a random tweet about anything you'd like, today's date is {today}"
-
+    async def random_tweet(self):
+        prompt_message = f"Generate a random tweet about anything you'd like. Be funny and engaging."
         try:
-            retriever = self.retrievers[0]
-            default_file_path = "shared/ollama_conversations_refined_output.pdf"
-            actual_file_path = file_path if file_path else default_file_path
-
-            logger.info(f"Loading Twitter data from: {actual_file_path}")
-            await retriever.load_twitter_data(actual_file_path)
-
-            response = retriever.query(prompt_message)
-            logger.info(f"Retriever response: {response}")
-            response_str = response.get("response", "")
-            response_data = self.parser.parse(response_str)
-
-            logger.info(f"Parsed response data: {response_data}")
-
-            await self.tools[0].execute(message=response_data.get("message"))
-            logger.info(f"Tweet posted successfully: {response_data.get('message')}")
-
+            response = await self.prompt(prompt_message, format=TweetSchema)
+            response_data = self.parser.parse(response)
+            await self.tools[0].execute(message=response_data.message)
+            logger.info(f"Tweet posted successfully: {response_data.message}")
         except ValueError as ve:
             logger.error(f"Value error in random_tweet: {str(ve)}")
         except Exception as e:

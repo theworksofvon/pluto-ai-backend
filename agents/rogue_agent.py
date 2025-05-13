@@ -53,8 +53,8 @@ class RogueAgent(Agent):
     async def execute_task(self):
         self.scheduler.add_interval_job(
             func=self.tweet_latest_news,
-            hours=0,
-            minutes=1,
+            hours=1,
+            minutes=0,
             job_id="twitter_agent_tweet_latest_news",
         )
         self.scheduler.start()

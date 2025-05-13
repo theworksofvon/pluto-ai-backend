@@ -77,6 +77,11 @@ class Config(BaseSettings):
         default="",
     )
 
+    SERPER_API_KEY: str = Field(
+        description="Serper API key",
+        default="",
+    )
+
     JA_MORANTS_TRIGGER_FINGER_TWITTER_CLIENT_ID: str = Field(
         description="Ja Morant's Trigger Finger Twitter client ID",
         default="",
