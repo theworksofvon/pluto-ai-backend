@@ -54,10 +54,10 @@ class RogueAgent(Agent):
 
     async def execute_task(self):
         self.scheduler.add_interval_job(
-            func=self.random_tweet,
+            func=self.tweet_latest_news,
             hours=0,
             minutes=1,
-            job_id="twitter_agent_random_tweet",
+            job_id="twitter_agent_tweet_latest_news",
         )
         self.scheduler.start()
         logger.info("Twitter agent is running...")
@@ -71,3 +71,27 @@ class RogueAgent(Agent):
             await self.tools[0].execute(message=response_data.message)
         except Exception as e:
             logger.error(f"Error posting tweet: {e}")
+            
+    async def get_news(self, topic: Optional[str] = None):
+        today = datetime.now().strftime("%Y-%m-%d")
+        news_response = await self.search_web(f"latest news for {topic} {today}")
+        logger.info(f"News: {news_response}")
+        return news_response
+    
+    async def tweet_latest_news(self, topic: Optional[str] = None):
+        today = datetime.now().strftime("%Y-%m-%d")
+        news_response = await self.get_news(topic)
+        prompt_message = f"here's some search results for news today {today}: {news_response}. Tweet something crazy that has happened in the media today. Do not use hashtags and keep tweets short and concise. Don't say yo. no more than 15 words. tweets should be all lowercase and no punctuation unless necessary. Do not use emojis or special characters. Curse and be free. Be based. Feel free to write about anything not just crypto, those are just some meme style tweets to take inspiration from."
+        response = await self.prompt(prompt_message, format=TweetSchema)
+        response_data = self.parser.parse(response)
+        try:
+            await self.tools[0].execute(message=response_data.message)
+        except Exception as e:
+            logger.error(f"Error posting tweet: {e}")
+            
+    async def search_web(self, query: str):
+       response = await self.tools[1].execute(query=query, fetch_content=True)
+       logger.info(f"Web search response: {response.data}")
+       return response.data
+   
+        

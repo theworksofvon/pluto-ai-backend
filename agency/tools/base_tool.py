@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 from dataclasses import dataclass
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 @dataclass
@@ -20,6 +20,8 @@ class BaseTool(ABC, BaseModel):
     name: str = Field(description="Name of the tool")
     description: str = Field(description="Description of the tool")
     parameters: Dict[str, Dict] = Field(default_factory=dict)
+    
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @abstractmethod
     async def execute(self, **kwargs) -> ToolResult:
