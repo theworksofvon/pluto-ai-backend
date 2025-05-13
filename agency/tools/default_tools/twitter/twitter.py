@@ -196,7 +196,9 @@ class TwitterTool(BaseTool):
         try:
             if not message:
                 logger.error("Cannot post tweet: message is empty")
-                return ToolResult(success=False, data=None, error="Message cannot be empty")
+                return ToolResult(
+                    success=False, data=None, error="Message cannot be empty"
+                )
 
             params_model = TwitterPostParams(message=message, media_url=media_url)
             url = f"{self._api_base}/tweets"
@@ -228,11 +230,13 @@ class TwitterTool(BaseTool):
                             logger.info(f"Successfully posted tweet: {result}")
                             return result
                         except Exception as json_error:
-                            logger.error(f"Error parsing successful response: {json_error}")
+                            logger.error(
+                                f"Error parsing successful response: {json_error}"
+                            )
                             return ToolResult(
-                                success=False, 
-                                data=None, 
-                                error=f"Error parsing response: {json_error}"
+                                success=False,
+                                data=None,
+                                error=f"Error parsing response: {json_error}",
                             )
                     else:
                         try:
@@ -240,7 +244,7 @@ class TwitterTool(BaseTool):
                             error_msg = f"Twitter API error: {error_data}"
                         except:
                             error_msg = f"Twitter API error: Status {response.status}, Response: {response_text}"
-                        
+
                         logger.error(error_msg)
                         return ToolResult(success=False, data=None, error=error_msg)
 

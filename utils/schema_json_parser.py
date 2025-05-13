@@ -310,12 +310,12 @@ class SchemaJsonParser:
         if hasattr(response, "model_dump"):
             logger.info("Response is a Pydantic model, returning directly")
             return response
-            
+
         # If response is already a dict, extract schema fields
         if isinstance(response, dict):
             logger.info("Response is a dict, extracting schema fields")
             return self._extract_schema_fields(response)
-            
+
         # If response is a string, try parsing strategies
         if isinstance(response, str):
             result = (

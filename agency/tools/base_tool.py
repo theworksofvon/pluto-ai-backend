@@ -20,7 +20,7 @@ class BaseTool(ABC, BaseModel):
     name: str = Field(description="Name of the tool")
     description: str = Field(description="Description of the tool")
     parameters: Dict[str, Dict] = Field(default_factory=dict)
-    
+
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @abstractmethod

@@ -173,9 +173,7 @@ Feel free to tweet about anything you want.
             except Exception as e:
                 logger.error(f"Error posting tweet: {e}")
 
-    async def random_tweet(
-        self, file_path: Optional[str] = None
-    ):
+    async def random_tweet(self, file_path: Optional[str] = None):
         today = datetime.now().strftime("%Y-%m-%d")
         prompt_message = f"Generate a random tweet about anything you'd like, today's date is {today}"
 

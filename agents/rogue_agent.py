@@ -29,9 +29,7 @@ class RogueAgent(Agent):
 
     def __init__(self, **kwargs):
         super().__init__(
-            name="RogueAgent",
-            model="grok",
-            instructions=PLUTO_PERSONALITY
+            name="RogueAgent", model="grok", instructions=PLUTO_PERSONALITY
         )
         self.adapters = Adapters()
         self.scheduler = self.adapters.scheduler
@@ -44,7 +42,7 @@ class RogueAgent(Agent):
                 client_id=config.JA_MORANTS_TRIGGER_FINGER_TWITTER_CLIENT_ID,
                 client_secret=config.JA_MORANTS_TRIGGER_FINGER_TWITTER_CLIENT_SECRET,
             ),
-            WebSearchTool()
+            WebSearchTool(),
         ]
         self.tweet_schema = [
             FieldSchema(name="message", type=FieldType.STRING, required=True),
@@ -71,13 +69,13 @@ class RogueAgent(Agent):
             await self.tools[0].execute(message=response_data.message)
         except Exception as e:
             logger.error(f"Error posting tweet: {e}")
-            
+
     async def get_news(self, topic: Optional[str] = None):
         today = datetime.now().strftime("%Y-%m-%d")
         news_response = await self.search_web(f"latest news for {topic} {today}")
         logger.info(f"News: {news_response}")
         return news_response
-    
+
     async def tweet_latest_news(self, topic: Optional[str] = None):
         today = datetime.now().strftime("%Y-%m-%d")
         news_response = await self.get_news(topic)
@@ -88,10 +86,8 @@ class RogueAgent(Agent):
             await self.tools[0].execute(message=response_data.message)
         except Exception as e:
             logger.error(f"Error posting tweet: {e}")
-            
+
     async def search_web(self, query: str):
-       response = await self.tools[1].execute(query=query, fetch_content=True)
-       logger.info(f"Web search response: {response.data}")
-       return response.data
-   
-        
+        response = await self.tools[1].execute(query=query, fetch_content=True)
+        logger.info(f"Web search response: {response.data}")
+        return response.data
