@@ -15,8 +15,9 @@ from shared.personality import PLUTO_PERSONALITY
 class TwitterRetriever(BaseRetriever):
     def __init__(self, **kwargs):
         llm = OpenAI(
-            api_key=config.OPENAI_API_KEY_OAI,
-            model="gpt-4o-mini",
+            api_key=config.GROK_API_KEY,
+            base_url="https://api.x.ai/v1",
+            model="grok-3-mini-beta",
             temperature=0.7,
             max_tokens=1000,
             system_prompt=PLUTO_PERSONALITY
@@ -173,28 +174,23 @@ Feel free to tweet about anything you want.
                 logger.error(f"Error posting tweet: {e}")
 
     async def random_tweet(
-        self, version: Literal["v1", "v2"] = "v2", file_path: Optional[str] = None
+        self, file_path: Optional[str] = None
     ):
         today = datetime.now().strftime("%Y-%m-%d")
         prompt_message = f"Generate a random tweet about anything you'd like, today's date is {today}"
 
         try:
-            if version == "v2":
-                retriever = self.retrievers[0]
-                default_file_path = "shared/ollama_conversations_refined_output.pdf"
-                actual_file_path = file_path if file_path else default_file_path
+            retriever = self.retrievers[0]
+            default_file_path = "shared/ollama_conversations_refined_output.pdf"
+            actual_file_path = file_path if file_path else default_file_path
 
-                logger.info(f"Loading Twitter data from: {actual_file_path}")
-                await retriever.load_twitter_data(actual_file_path)
+            logger.info(f"Loading Twitter data from: {actual_file_path}")
+            await retriever.load_twitter_data(actual_file_path)
 
-                response = retriever.query(prompt_message)
-                logger.info(f"Retriever response: {response}")
-                response_str = response.get("response", "")
-                response_data = self.parser.parse(response_str)
-            elif version == "v1":
-                response = await self.prompt(prompt_message, web_search=True)
-                logger.info(f"Prompt response: {response}")
-                response_data = self.parser.parse(response)
+            response = retriever.query(prompt_message)
+            logger.info(f"Retriever response: {response}")
+            response_str = response.get("response", "")
+            response_data = self.parser.parse(response_str)
 
             logger.info(f"Parsed response data: {response_data}")
 
@@ -203,10 +199,6 @@ Feel free to tweet about anything you want.
 
         except ValueError as ve:
             logger.error(f"Value error in random_tweet: {str(ve)}")
-            logger.info("Falling back to v1 (direct prompt) method")
-            response = await self.prompt(prompt_message, web_search=True)
-            response_data = self.parser.parse(response)
-            await self.tools[0].execute(message=response_data.get("message"))
         except Exception as e:
             logger.error(f"Error in random_tweet: {str(e)}")
             raise
