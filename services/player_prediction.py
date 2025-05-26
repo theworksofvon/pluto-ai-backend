@@ -33,7 +33,7 @@ class PlayerPredictionService:
         self.encoders = {}
 
         model_types = ["points", "rebounds", "assists"]
-        model_dir = "ai_models"
+        model_dir = "linear_models"
 
         for model_type in model_types:
             self._load_model(model_type, model_dir)

@@ -1,7 +1,9 @@
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 import aiohttp
+import traceback
 from openai import OpenAI
+from pydantic import BaseModel
 from config import config
 from .exceptions import CommunicationsProtocolError
 from logger import logger
@@ -61,14 +63,16 @@ class CommunicationProtocol:
         if web_search and not self.model.startswith("openai"):
             raise ValueError("Web search is not supported for this model.")
 
-        full_prompt = self._build_prompt(prompt, sender)
+        full_prompt = prompt
 
         if self.model.startswith("openai"):
             response = await self._send_to_openai(full_prompt, format, web_search)
         elif self.model.startswith("deepseek"):
             response = await self._send_to_deepseek(full_prompt, format)
-        else:
+        elif self.model.startswith("ollama"):
             response = await self._send_to_ollama(full_prompt, format)
+        elif self.model.startswith("grok"):
+            response = await self._send_to_grok(prompt=prompt, format=format)
         try:
             self._update_history("user", prompt)
             self._update_history("assistant", response)
@@ -166,6 +170,47 @@ class CommunicationProtocol:
         except Exception as error:
             error_message = f"Error communicating with OpenAI model: {self.default_open_ai_model}, error: {error}"
             print(error_message)
+            raise CommunicationsProtocolError(error_message, status_code=400)
+
+    async def _send_to_grok(
+        self, prompt: str, format: Optional[BaseModel] = None
+    ) -> str:
+        """
+        Handle communication with a remote Grok model.
+
+        Args:
+            prompt (str): The input prompt for the model.
+            format (Optional[BaseModel]): The response format for the model. Can be a Pydantic BaseModel.
+
+        Returns:
+            str: The model's response.
+        """
+        api_key = self.config.GROK_API_KEY or os.getenv("GROK_API_KEY")
+        if not api_key:
+            raise ValueError("Grok API key is missing.")
+
+        client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
+        try:
+            response = client.beta.chat.completions.parse(
+                model="grok-3-mini-beta",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": self.personality,
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                response_format=format,
+            )
+            return response.choices[0].message.parsed
+        except Exception as error:
+            full_trace = traceback.format_exc()
+            error_message = (
+                f"Error communicating with Grok model: {self.model}\n"
+                f"{str(error)}\n"
+                f"{full_trace}"
+            )
+            logger.error(error_message)
             raise CommunicationsProtocolError(error_message, status_code=400)
 
     async def _send_to_deepseek(

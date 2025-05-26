@@ -4,6 +4,7 @@ import resend
 from datetime import datetime
 from config import config
 import asyncio
+from connections import Connections
 
 
 class UserService:

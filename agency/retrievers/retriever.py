@@ -5,11 +5,13 @@ Retrieve documents related to query
 from typing import Any, Optional
 from llama_parse import LlamaParse
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.core import VectorStoreIndex, Document, ServiceContext
+from llama_index.core import VectorStoreIndex, Document
 from typing import List
 from llama_index.core.storage import StorageContext
 from config import config
 from llama_index.llms.ollama import Ollama
+from llama_index.core.settings import Settings
+import asyncio
 
 
 class BaseRetriever:
@@ -31,9 +33,12 @@ class BaseRetriever:
             model=config.OLLAMA_MODEL_NAME, base_url=config.OLLAMA_API_URL
         )
 
-        self.service_context = ServiceContext.from_defaults(
-            llm=self.llm, embed_model=self.embed_model
-        )
+        # Configure global settings
+        Settings.llm = self.llm
+        Settings.embed_model = self.embed_model
+        Settings.chunk_size = 1024
+        Settings.chunk_overlap = 20
+
         self.vector_index = None
         self.query_engine = None
 
@@ -43,25 +48,22 @@ class BaseRetriever:
             storage_context = StorageContext.from_defaults(persist_dir=persist_dir)
             self.vector_index = VectorStoreIndex.from_documents(
                 documents,
-                embed_model=self.embed_model,
                 storage_context=storage_context,
-                service_context=self.service_context,
             )
         else:
             self.vector_index = VectorStoreIndex.from_documents(
                 documents,
-                embed_model=self.embed_model,
-                service_context=self.service_context,
             )
 
         self.query_engine = self.vector_index.as_query_engine()
         return self.vector_index
 
-    def parse_documents(self, file_paths: List[str], doc_type: str) -> List[Document]:
+    async def parse_documents(
+        self, file_paths: List[str], doc_type: str
+    ) -> List[Document]:
         """
         Parse documents from file paths using LlamaParse
         """
-
         accepted_doc_types = [".pdf"]
 
         if doc_type not in accepted_doc_types:
@@ -69,7 +71,8 @@ class BaseRetriever:
 
         documents = []
         for file_path in file_paths:
-            parsed_docs = self.parser.load_data(file_path)
+            # Use the async version of load_data
+            parsed_docs = await self.parser.aload_data(file_path)
             documents.extend(parsed_docs)
         return documents
 
@@ -79,7 +82,6 @@ class BaseRetriever:
 
         Args:
             query_text (str): The query text to search for
-            similarity_top_k (int): Number of top similar documents to return
 
         Returns:
             Dict: Query response containing relevant documents and their similarity scores
@@ -93,5 +95,4 @@ class BaseRetriever:
             self.query_engine = self.vector_index.as_query_engine()
 
         response = self.query_engine.query(query_text)
-
         return {"response": str(response)}

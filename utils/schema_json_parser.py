@@ -289,32 +289,45 @@ class SchemaJsonParser:
 
         return result
 
-    def parse(self, response: str) -> Dict[str, Any]:
+    def parse(self, response: Any) -> Dict[str, Any]:
         """
-        Parse a response string using the schema.
+        Parse a response using the schema.
 
         This method tries multiple parsing strategies in sequence:
-        1. Direct JSON parsing
-        2. Extracting JSON from code blocks
-        3. Extracting dictionary-like structures
-        4. Field-by-field regex extraction
+        1. If response is a Pydantic model, return it directly
+        2. Direct JSON parsing
+        3. Extracting JSON from code blocks
+        4. Extracting dictionary-like structures
+        5. Field-by-field regex extraction
 
         Args:
-            response: The string response to parse
+            response: The response to parse (can be string, dict, or Pydantic model)
 
         Returns:
             A dictionary with the extracted values according to the schema
         """
-        result = (
-            self._try_direct_json_parsing(response)
-            or self._try_code_block_extraction(response)
-            or self._try_dict_structure_extraction(response)
-            or self._try_field_by_field_extraction(response)
-        )
+        # If response is a Pydantic model, return it directly
+        if hasattr(response, "model_dump"):
+            logger.info("Response is a Pydantic model, returning directly")
+            return response
 
-        if not result:
-            logger.error("All parsing strategies failed. Using default value.")
-            return self.default_value
+        # If response is already a dict, extract schema fields
+        if isinstance(response, dict):
+            logger.info("Response is a dict, extracting schema fields")
+            return self._extract_schema_fields(response)
+
+        # If response is a string, try parsing strategies
+        if isinstance(response, str):
+            result = (
+                self._try_direct_json_parsing(response)
+                or self._try_code_block_extraction(response)
+                or self._try_dict_structure_extraction(response)
+                or self._try_field_by_field_extraction(response)
+            )
+
+            if not result:
+                logger.error("All parsing strategies failed. Using default value.")
+                return self.default_value
 
         logger.info(f"Result after parsing: {result}")
         return result

@@ -81,7 +81,7 @@ class GamePredictionRequest(BaseSchema):
         None,
         description="Additional context that you found that is relevant to the prediction",
     )
-
+    
 
 class GamePredictionValue(BaseSchema):
     value: Optional[str] = Field(

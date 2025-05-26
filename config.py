@@ -52,6 +52,46 @@ class Config(BaseSettings):
         default="",
     )
 
+    JA_MORANTS_TRIGGER_FINGER_TWITTER_API_KEY: str = Field(
+        description="Ja Morant's Trigger Finger Twitter API key",
+        default="",
+    )
+
+    JA_MORANTS_TRIGGER_FINGER_TWITTER_API_SECRET: str = Field(
+        description="Ja Morant's Trigger Finger Twitter API secret",
+        default="",
+    )
+
+    JA_MORANTS_TRIGGER_FINGER_TWITTER_ACCESS_TOKEN: str = Field(
+        description="Ja Morant's Trigger Finger Twitter access token",
+        default="",
+    )
+
+    JA_MORANTS_TRIGGER_FINGER_TWITTER_ACCESS_TOKEN_SECRET: str = Field(
+        description="Ja Morant's Trigger Finger Twitter access token secret",
+        default="",
+    )
+
+    GROK_API_KEY: str = Field(
+        description="Grok API key",
+        default="",
+    )
+
+    SERPER_API_KEY: str = Field(
+        description="Serper API key",
+        default="",
+    )
+
+    JA_MORANTS_TRIGGER_FINGER_TWITTER_CLIENT_ID: str = Field(
+        description="Ja Morant's Trigger Finger Twitter client ID",
+        default="",
+    )
+
+    JA_MORANTS_TRIGGER_FINGER_TWITTER_CLIENT_SECRET: str = Field(
+        description="Ja Morant's Trigger Finger Twitter client secret",
+        default="",
+    )
+
     LLAMA_CLOUD_API_KEY: str = Field(
         description="Llama Cloud API key",
         default="",
