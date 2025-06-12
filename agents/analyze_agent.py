@@ -1,4 +1,4 @@
-from agency.agent import Agent
+from openai_sdk.agent import OpenAIAgent
 from agency.agency_types import Tendencies
 from typing import Dict, Any
 import json
@@ -9,7 +9,7 @@ from models.prediction_models import PlayerPredictionResponse
 from models.prediction_context import PredictionContext
 
 
-class AnalyzeAgent(Agent):
+class AnalyzeAgent(OpenAIAgent):
     def __init__(self, **kwargs):
         self.independent_analysis_schema = [
             FieldSchema(name="value", type=FieldType.NUMBER, required=True),
@@ -98,8 +98,6 @@ class AnalyzeAgent(Agent):
                 "3. Compare your independent analysis with the primary agent's prediction.\n"
                 "4. Provide a final report summarizing your findings, highlighting agreements, disagreements, confidence levels, and any potential overlooked factors."
             ),
-            tendencies=ANALYZE_AGENT_PERSONALITY,
-            model="openai-gpt-4.1",
             **kwargs,
         )
 

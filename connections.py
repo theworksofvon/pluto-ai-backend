@@ -14,14 +14,26 @@ class Connections:
     @classmethod
     async def create_connections(cls):
         """Create and initialize all connections"""
+        if config.ENVIRONMENT == "local":
+            logger.info(
+                "Local environment detected; skipping database and Supabase connections"
+            )
+            cls.db = None
+            cls.supabase = None
+            return cls
+
         cls.db = await sqlalchemy_client.connect(
             config.DATABASE_URI, echo=config.SQL_ECHO
         )
         logger.info(f"Database connection created successfully: {cls.db}")
-        cls.supabase = create_client(
-            config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY
-        )
-        logger.info("Supabase connection created successfully")
+        if config.SUPABASE_URL and config.SUPABASE_SERVICE_ROLE_KEY:
+            cls.supabase = create_client(
+                config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY
+            )
+            logger.info("Supabase connection created successfully")
+        else:
+            cls.supabase = None
+            logger.info("Supabase credentials not provided; skipping connection")
         logger.info("Connections created successfully")
         return cls
 

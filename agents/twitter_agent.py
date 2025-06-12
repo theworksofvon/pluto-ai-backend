@@ -1,4 +1,4 @@
-from agency.agent import Agent
+from openai_sdk.agent import OpenAIAgent
 from agency.tools.default_tools import TwitterTool
 from logger import logger
 from utils import SchemaJsonParser, FieldSchema, FieldType
@@ -61,7 +61,7 @@ Guidelines:
             raise
 
 
-class TwitterAgent(Agent):
+class TwitterAgent(OpenAIAgent):
     """
     Agent responsible for making posts on twitter.
     """
@@ -108,7 +108,6 @@ Feel free to tweet about anything you want.
 }
 ```
 """,
-            model="grok",
             **kwargs,
         )
         self.tools = [
@@ -174,7 +173,9 @@ Feel free to tweet about anything you want.
                 logger.error(f"Error posting tweet: {e}")
 
     async def random_tweet(self):
-        prompt_message = f"Generate a random tweet about anything you'd like. Be funny and engaging."
+        prompt_message = (
+            f"Generate a random tweet about anything you'd like. Be funny and engaging."
+        )
         try:
             response = await self.prompt(prompt_message, format=TweetSchema)
             response_data = self.parser.parse(response)

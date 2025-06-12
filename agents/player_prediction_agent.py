@@ -1,4 +1,4 @@
-from agency.agent import Agent
+from openai_sdk.agent import OpenAIAgent
 from services.player_prediction import PlayerPredictionService
 from typing import Dict, Optional, Any, List, Literal
 from adapters import Adapters
@@ -39,7 +39,7 @@ def convert_numpy_types(obj):
     return obj
 
 
-class PlayerPredictionAgent(Agent):
+class PlayerPredictionAgent(OpenAIAgent):
     """
     Agent responsible for making NBA player predictions.
     Uses prepared data from PlayerPredictionService and leverages LLM for actual predictions.
@@ -110,9 +110,6 @@ Important Behavior Rules:
 - ALWAYS RESPOND IN THE STRICTLY SPECIFIED JSON FORMAT.
 You have web search capabilities. When possible, enrich your predictions with verified news, late-breaking injury updates, and betting market shifts. If no useful information is found, rely on core statistical and historical analysis.
             """,
-            tendencies=PLAYER_PREDICTION_PERSONALITY,
-            role="pilot",
-            model="openai-gpt-4.1-mini",
             **kwargs,
         )
         self.prediction_service = PlayerPredictionService()
