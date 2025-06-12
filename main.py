@@ -6,7 +6,7 @@ from routers import router
 from agency import Agency
 from agents import PlayerPredictionAgent, GamePredictionAgent, TwitterAgent, RogueAgent
 from logger import logger
-from agency.mcp.mcp import init_mcp
+from config import config
 
 app = FastAPI(
     title="Pluto AI",
@@ -36,17 +36,22 @@ app.include_router(router)
 async def startup():
     logger.info(f"Starting Pluto AI API")
     await Connections.create_connections()
-    agency = Agency(
-        [PlayerPredictionAgent(), GamePredictionAgent(), TwitterAgent(), RogueAgent()]
-    )
-    await agency.agents["PlayerPredictionAgent"].execute_task()
-    await agency.agents["GamePredictionAgent"].execute_task()
-    await agency.agents["PlutoPredictsTwitterAgent"].execute_task()
-    await agency.agents["RogueAgent"].execute_task()
-    logger.info(f"Agency initialized successfully and running, {agency}")
-    
-    mcp_thread = threading.Thread(target=Connections.mcp.run, daemon=True)
-    mcp_thread.start()
+    if config.ENVIRONMENT != "local":
+        agency = Agency(
+            [
+                PlayerPredictionAgent(),
+                GamePredictionAgent(),
+                TwitterAgent(),
+                RogueAgent(),
+            ]
+        )
+        await agency.agents["PlayerPredictionAgent"].execute_task()
+        await agency.agents["GamePredictionAgent"].execute_task()
+        await agency.agents["PlutoPredictsTwitterAgent"].execute_task()
+        await agency.agents["RogueAgent"].execute_task()
+        logger.info(f"Agency initialized successfully and running, {agency}")
+    else:
+        logger.info("Local environment detected; skipping agent startup tasks")
 
 
 @app.on_event("shutdown")
@@ -55,5 +60,3 @@ async def shutdown():
     logger.info("Shutting down Pluto AI API")
     await Connections.close_connections()
     logger.info("Connections closed successfully")
-    
-mcp = Connections.mcp

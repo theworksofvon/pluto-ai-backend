@@ -1,4 +1,4 @@
-from agency.agent import Agent
+from openai_sdk.agent import OpenAIAgent
 from services.game_prediction import GamePredictionService
 from typing import Dict, Optional, Any, List
 from adapters import Adapters
@@ -20,7 +20,7 @@ import pandas as pd
 from utils import FieldSchema, FieldType, SchemaJsonParser
 
 
-class GamePredictionAgent(Agent):
+class GamePredictionAgent(OpenAIAgent):
     """
     Agent responsible for making NBA game winner predictions.
     Uses prepared data from GamePredictionService and leverages LLM for actual predictions.
@@ -73,9 +73,6 @@ Back-to-back games, rest days, and travel considerations.
 
 When presenting predictions, provide clear and detailed explanations of your analytical thought process, explicitly highlighting critical data points, predictive signals, and strategic insights influencing your forecast. Always support your analysis with specific statistics and contextual factors to reinforce confidence in your prediction.
             """,
-            tendencies=GAME_PREDICTION_PERSONALITY,
-            role="pilot",
-            model="openai/gpt-4o",
             **kwargs,
         )
         self.prediction_service = GamePredictionService()
@@ -141,18 +138,17 @@ When presenting predictions, provide clear and detailed explanations of your ana
                         logger.warning(f"Skipping game due to missing IDs: {game}")
                         continue
 
-                    # Get Abbreviations from IDs
                     try:
                         home_team_abbr = get_team_abbr_from_id(home_team_id)
                         away_team_abbr = get_team_abbr_from_id(away_team_id)
                     except NameError:
                         logger.error("get_team_abbr_from_id helper function not found.")
-                        continue  # Skip game if helper missing
+                        continue
                     except Exception as e:
                         logger.error(
                             f"Error getting team abbreviation for IDs {home_team_id}/{away_team_id}: {e}"
                         )
-                        continue  # Skip game on error
+                        continue
 
                     if not home_team_abbr or not away_team_abbr:
                         logger.warning(
@@ -160,7 +156,6 @@ When presenting predictions, provide clear and detailed explanations of your ana
                         )
                         continue
 
-                    # Use abbreviations when calling predict_game_winner
                     prediction = await self.predict_game_winner(
                         home_team_abbr=home_team_abbr,
                         away_team_abbr=away_team_abbr,
@@ -340,7 +335,6 @@ When presenting predictions, provide clear and detailed explanations of your ana
         home_team_abbr = context.get("home_team", "Unknown Team")
         away_team_abbr = context.get("away_team", "Unknown Team")
 
-        # Clean the context for safe JSON embedding
         cleaned_context = {}
         try:
             cleaned_context = self.prediction_service._clean_nan(context)

@@ -1,4 +1,4 @@
-from agency.agent import Agent
+from openai_sdk.agent import OpenAIAgent
 from logger import logger
 from adapters import Adapters
 from agency.tools.default_tools import TwitterTool, WebSearchTool
@@ -17,7 +17,7 @@ class TweetSchema(BaseModel):
     media_url: Optional[str] = None
 
 
-class RogueAgent(Agent):
+class RogueAgent(OpenAIAgent):
     """
     Rogue Agent that posts tweets to twitter.
     """
@@ -28,9 +28,7 @@ class RogueAgent(Agent):
     scheduler: AbstractScheduler = None
 
     def __init__(self, **kwargs):
-        super().__init__(
-            name="RogueAgent", model="grok", instructions=PLUTO_PERSONALITY
-        )
+        super().__init__(name="RogueAgent", instructions=PLUTO_PERSONALITY)
         self.adapters = Adapters()
         self.scheduler = self.adapters.scheduler
         self.tools = [
