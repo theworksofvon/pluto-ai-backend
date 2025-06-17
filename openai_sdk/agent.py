@@ -67,8 +67,20 @@ class OpenAIAgent:
             "thread_id": thread_id,
         }
 
-    async def prompt(self, message: str, client_name: Optional[str] = None) -> str:
-        """Send a prompt to the specified client using its session."""
+    async def prompt(self, message: str, client_name: Optional[str] = None, web_search: bool = False) -> str:
+        """Send a prompt to the specified client using its session.
+        
+        Args:
+            message: The message to send
+            client_name: Optional client name to use
+            web_search: Whether to enable web search functionality (currently ignored)
+        """
+        # TODO: Implement web search functionality when OpenAI supports it
+        if web_search:
+            # For now, we'll just add a note to the message that web search was requested
+            # In the future, this could use function calling or tools API
+            pass
+            
         client_key = client_name or self.default_client
         client = self.clients.get(client_key)
         if client is None:
