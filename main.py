@@ -40,7 +40,7 @@ async def startup():
         agency = Agency(
             [
                 PlayerPredictionAgent(),
-                GamePredictionAgent(),
+                GamePredictionAgent(role="pilot"),
                 TwitterAgent(),
                 RogueAgent(),
             ]

@@ -2,7 +2,7 @@ from __future__ import annotations
 import asyncio
 import os
 from dataclasses import dataclass
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List, Literal
 
 from openai import AsyncOpenAI
 from config import config
@@ -24,9 +24,13 @@ class OpenAIAgent:
         instructions: str,
         llm_configs: Optional[Dict[str, LLMConfig]] = None,
         default_client: str = "openai",
+        role: Literal["pilot", "crew"] = "crew",
+        tools: Optional[List[Any]] = None,
     ) -> None:
         self.name = name
         self.instructions = instructions
+        self.role = role
+        self.tools = tools or []
         self.llm_configs = llm_configs or {
             "openai": LLMConfig(
                 base_url="https://api.openai.com/v1",
