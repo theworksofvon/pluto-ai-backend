@@ -51,9 +51,7 @@ class OpenAIAgent:
         self.sessions: Dict[str, Dict[str, str]] = {}
 
     def _build_personality(self) -> str:
-        """
-        Combines instructions and tendencies to create a comprehensive personality for this agent.
-        """
+        """Combines instructions and tendencies to create a comprehensive personality."""
         base_instructions = (
             self.instructions() if callable(self.instructions) else self.instructions
         )
@@ -63,7 +61,6 @@ class OpenAIAgent:
         
         personality_additions = []
         
-        # Add emotional characteristics
         if hasattr(self.tendencies, 'emotions') and self.tendencies.emotions:
             emotions = self.tendencies.emotions
             if hasattr(emotions, 'emotional_responsiveness'):
@@ -74,31 +71,25 @@ class OpenAIAgent:
                 level = "highly empathetic" if emotions.empathy_level > 0.7 else "moderately empathetic" if emotions.empathy_level > 0.3 else "analytical and objective"
                 personality_additions.append(f"You are {level} in your responses.")
         
-        # Add decision making style
         if hasattr(self.tendencies, 'decision_making'):
             personality_additions.append(f"Your decision-making style is {self.tendencies.decision_making}.")
         
-        # Add risk tolerance
         if hasattr(self.tendencies, 'risk_tolerance'):
             level = "high" if self.tendencies.risk_tolerance > 0.7 else "moderate" if self.tendencies.risk_tolerance > 0.3 else "low"
             personality_additions.append(f"You have a {level} risk tolerance.")
         
-        # Add core values
         if hasattr(self.tendencies, 'core_values') and self.tendencies.core_values:
             values_str = ", ".join(self.tendencies.core_values)
             personality_additions.append(f"Your core values include: {values_str}.")
         
-        # Add goals
         if hasattr(self.tendencies, 'goals') and self.tendencies.goals:
             goals_str = "; ".join(self.tendencies.goals)
             personality_additions.append(f"Your primary goals are: {goals_str}.")
         
-        # Add fears/constraints
         if hasattr(self.tendencies, 'fears') and self.tendencies.fears:
             fears_str = "; ".join(self.tendencies.fears)
             personality_additions.append(f"You are particularly careful to avoid: {fears_str}.")
         
-        # Add custom traits
         if hasattr(self.tendencies, 'custom_traits') and self.tendencies.custom_traits:
             if 'loves' in self.tendencies.custom_traits:
                 personality_additions.append(f"You particularly enjoy {self.tendencies.custom_traits['loves']}.")
@@ -106,7 +97,6 @@ class OpenAIAgent:
                 enthusiasm = ", ".join(self.tendencies.custom_traits['enthusiastic_about'])
                 personality_additions.append(f"You are enthusiastic about: {enthusiasm}.")
         
-        # Combine everything
         if personality_additions:
             return f"{base_instructions}\n\nPersonality Traits:\n" + "\n".join(f"- {trait}" for trait in personality_additions)
         
@@ -139,17 +129,9 @@ class OpenAIAgent:
         }
 
     async def prompt(self, message: str, client_name: Optional[str] = None, web_search: bool = False) -> str:
-        """Send a prompt to the specified client using its session.
-        
-        Args:
-            message: The message to send
-            client_name: Optional client name to use
-            web_search: Whether to enable web search functionality (currently ignored)
-        """
+        """Send a prompt to the specified client using its session."""
         # TODO: Implement web search functionality when OpenAI supports it
         if web_search:
-            # For now, we'll just add a note to the message that web search was requested
-            # In the future, this could use function calling or tools API
             pass
             
         client_key = client_name or self.default_client

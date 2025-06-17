@@ -1,4 +1,4 @@
-from openai_sdk.agent import OpenAIAgent
+from agency.openai_sdk.agent import OpenAIAgent
 from services.player_prediction import PlayerPredictionService
 from typing import Dict, Optional, Any, List, Literal
 from adapters import Adapters

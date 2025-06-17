@@ -1,4 +1,4 @@
-from openai_sdk.agent import OpenAIAgent
+from agency.openai_sdk.agent import OpenAIAgent
 from agency.tools.default_tools import TwitterTool
 from logger import logger
 from utils import SchemaJsonParser, FieldSchema, FieldType

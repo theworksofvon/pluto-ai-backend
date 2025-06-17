@@ -1,4 +1,4 @@
-from openai_sdk.agent import OpenAIAgent
+from agency.openai_sdk.agent import OpenAIAgent
 from agency.agency_types import Tendencies
 from typing import Dict, Any
 import json

@@ -1,4 +1,4 @@
-from openai_sdk.agent import OpenAIAgent
+from agency.openai_sdk.agent import OpenAIAgent
 from logger import logger
 from adapters import Adapters
 from agency.tools.default_tools import TwitterTool, WebSearchTool

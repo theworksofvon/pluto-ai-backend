@@ -1,5 +1,5 @@
 from .agency import Agency
-from openai_sdk.agent import OpenAIAgent
+from .openai_sdk.agent import OpenAIAgent
 from .agency_types import Tendencies
 from .engines import *
 from .retrievers import *

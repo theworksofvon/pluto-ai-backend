@@ -1,6 +1,6 @@
 import asyncio
 from typing import List, Dict, Union, Optional, Any
-from openai_sdk.agent import OpenAIAgent
+from .openai_sdk.agent import OpenAIAgent
 from .engines.reasoning_engine import ReasoningEngine
 
 
