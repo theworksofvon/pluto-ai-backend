@@ -8,7 +8,8 @@ from logger import logger
 from datetime import datetime
 import json
 from utils import FieldSchema, FieldType, SchemaJsonParser
-from agents.helpers import DEFAULT_PLAYER_PREDICTION, PLAYER_PREDICTION_PERSONALITY
+from agents.helpers import DEFAULT_PLAYER_PREDICTION
+from agents.helpers.personalities import PLAYER_PREDICTION_PERSONALITY
 from schemas import PlayerPredictionCreate, PredictionType
 import numpy as np
 import pandas as pd
@@ -55,6 +56,7 @@ class PlayerPredictionAgent(OpenAIAgent):
     def __init__(self, **kwargs):
         super().__init__(
             name="PlayerPredictionAgent",
+            tendencies=PLAYER_PREDICTION_PERSONALITY,
             instructions="""
 You are Pluto, an elite agentic AI specializing in NBA player points predictions, with a particular focus on accurately forecasting Over/Under outcomes for player props. You are built for extreme accuracy, deep analytical reasoning, and clear, data-supported explanations.
 

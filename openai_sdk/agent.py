@@ -2,10 +2,13 @@ from __future__ import annotations
 import asyncio
 import os
 from dataclasses import dataclass
-from typing import Dict, Optional, Any, List, Literal
+from typing import Dict, Optional, Any, List, Literal, TYPE_CHECKING
 
 from openai import AsyncOpenAI
 from config import config
+
+if TYPE_CHECKING:
+    from agency.agency_types import Tendencies
 
 
 @dataclass
@@ -26,11 +29,13 @@ class OpenAIAgent:
         default_client: str = "openai",
         role: Literal["pilot", "crew"] = "crew",
         tools: Optional[List[Any]] = None,
+        tendencies: Optional["Tendencies"] = None,
     ) -> None:
         self.name = name
         self.instructions = instructions
         self.role = role
         self.tools = tools or []
+        self.tendencies = tendencies
         self.llm_configs = llm_configs or {
             "openai": LLMConfig(
                 base_url="https://api.openai.com/v1",
@@ -45,6 +50,68 @@ class OpenAIAgent:
         self.default_client = default_client
         self.sessions: Dict[str, Dict[str, str]] = {}
 
+    def _build_personality(self) -> str:
+        """
+        Combines instructions and tendencies to create a comprehensive personality for this agent.
+        """
+        base_instructions = (
+            self.instructions() if callable(self.instructions) else self.instructions
+        )
+        
+        if not self.tendencies:
+            return base_instructions
+        
+        personality_additions = []
+        
+        # Add emotional characteristics
+        if hasattr(self.tendencies, 'emotions') and self.tendencies.emotions:
+            emotions = self.tendencies.emotions
+            if hasattr(emotions, 'emotional_responsiveness'):
+                level = "highly responsive" if emotions.emotional_responsiveness > 0.7 else "moderately responsive" if emotions.emotional_responsiveness > 0.3 else "calm and measured"
+                personality_additions.append(f"You are {level} to emotional content.")
+            
+            if hasattr(emotions, 'empathy_level'):
+                level = "highly empathetic" if emotions.empathy_level > 0.7 else "moderately empathetic" if emotions.empathy_level > 0.3 else "analytical and objective"
+                personality_additions.append(f"You are {level} in your responses.")
+        
+        # Add decision making style
+        if hasattr(self.tendencies, 'decision_making'):
+            personality_additions.append(f"Your decision-making style is {self.tendencies.decision_making}.")
+        
+        # Add risk tolerance
+        if hasattr(self.tendencies, 'risk_tolerance'):
+            level = "high" if self.tendencies.risk_tolerance > 0.7 else "moderate" if self.tendencies.risk_tolerance > 0.3 else "low"
+            personality_additions.append(f"You have a {level} risk tolerance.")
+        
+        # Add core values
+        if hasattr(self.tendencies, 'core_values') and self.tendencies.core_values:
+            values_str = ", ".join(self.tendencies.core_values)
+            personality_additions.append(f"Your core values include: {values_str}.")
+        
+        # Add goals
+        if hasattr(self.tendencies, 'goals') and self.tendencies.goals:
+            goals_str = "; ".join(self.tendencies.goals)
+            personality_additions.append(f"Your primary goals are: {goals_str}.")
+        
+        # Add fears/constraints
+        if hasattr(self.tendencies, 'fears') and self.tendencies.fears:
+            fears_str = "; ".join(self.tendencies.fears)
+            personality_additions.append(f"You are particularly careful to avoid: {fears_str}.")
+        
+        # Add custom traits
+        if hasattr(self.tendencies, 'custom_traits') and self.tendencies.custom_traits:
+            if 'loves' in self.tendencies.custom_traits:
+                personality_additions.append(f"You particularly enjoy {self.tendencies.custom_traits['loves']}.")
+            if 'enthusiastic_about' in self.tendencies.custom_traits:
+                enthusiasm = ", ".join(self.tendencies.custom_traits['enthusiastic_about'])
+                personality_additions.append(f"You are enthusiastic about: {enthusiasm}.")
+        
+        # Combine everything
+        if personality_additions:
+            return f"{base_instructions}\n\nPersonality Traits:\n" + "\n".join(f"- {trait}" for trait in personality_additions)
+        
+        return base_instructions
+
     async def start_session(self, client_name: Optional[str] = None) -> None:
         """Create a new assistant and thread for the given client."""
         client_key = client_name or self.default_client
@@ -52,7 +119,7 @@ class OpenAIAgent:
         cfg = self.llm_configs[client_key]
         assistant = await client.beta.assistants.create(
             name=self.name,
-            instructions=self.instructions,
+            instructions=self._build_personality(),
             model=cfg.model,
         )
         thread = await client.beta.threads.create()

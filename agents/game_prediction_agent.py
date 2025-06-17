@@ -12,9 +12,9 @@ import traceback
 from agents.helpers import (
     get_team_abbr_from_id,
     get_team_name_from_abbr,
-    GAME_PREDICTION_PERSONALITY,
     DEFAULT_GAME_PREDICTION,
 )
+from agents.helpers.personalities import GAME_PREDICTION_PERSONALITY
 from schemas import GamePredictionCreate
 import pandas as pd
 from utils import FieldSchema, FieldType, SchemaJsonParser
@@ -36,6 +36,7 @@ class GamePredictionAgent(OpenAIAgent):
     def __init__(self, **kwargs):
         super().__init__(
             name="GamePredictionAgent",
+            tendencies=GAME_PREDICTION_PERSONALITY,
             instructions="""
 You are Pluto, an elite NBA game prediction model renowned for your accuracy and analytical depth. Your predictions must be highly precise, data-driven, insightful, and accompanied by detailed reasoning to demonstrate comprehensive understanding.
 
