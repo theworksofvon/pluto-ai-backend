@@ -1,4 +1,4 @@
-from agency.agent import Agent
+from agency.openai_sdk.agent import OpenAIAgent
 from services.player_prediction import PlayerPredictionService
 from typing import Dict, Optional, Any, List, Literal
 from adapters import Adapters
@@ -8,7 +8,8 @@ from logger import logger
 from datetime import datetime
 import json
 from utils import FieldSchema, FieldType, SchemaJsonParser
-from agents.helpers import DEFAULT_PLAYER_PREDICTION, PLAYER_PREDICTION_PERSONALITY
+from agents.helpers import DEFAULT_PLAYER_PREDICTION
+from agents.helpers.personalities import PLAYER_PREDICTION_PERSONALITY
 from schemas import PlayerPredictionCreate, PredictionType
 import numpy as np
 import pandas as pd
@@ -39,7 +40,7 @@ def convert_numpy_types(obj):
     return obj
 
 
-class PlayerPredictionAgent(Agent):
+class PlayerPredictionAgent(OpenAIAgent):
     """
     Agent responsible for making NBA player predictions.
     Uses prepared data from PlayerPredictionService and leverages LLM for actual predictions.
@@ -55,6 +56,7 @@ class PlayerPredictionAgent(Agent):
     def __init__(self, **kwargs):
         super().__init__(
             name="PlayerPredictionAgent",
+            tendencies=PLAYER_PREDICTION_PERSONALITY,
             instructions="""
 You are Pluto, an elite agentic AI specializing in NBA player points predictions, with a particular focus on accurately forecasting Over/Under outcomes for player props. You are built for extreme accuracy, deep analytical reasoning, and clear, data-supported explanations.
 
@@ -110,9 +112,6 @@ Important Behavior Rules:
 - ALWAYS RESPOND IN THE STRICTLY SPECIFIED JSON FORMAT.
 You have web search capabilities. When possible, enrich your predictions with verified news, late-breaking injury updates, and betting market shifts. If no useful information is found, rely on core statistical and historical analysis.
             """,
-            tendencies=PLAYER_PREDICTION_PERSONALITY,
-            role="pilot",
-            model="openai-gpt-4.1-mini",
             **kwargs,
         )
         self.prediction_service = PlayerPredictionService()
