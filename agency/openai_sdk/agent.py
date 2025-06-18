@@ -128,7 +128,7 @@ class OpenAIAgent:
             "thread_id": thread_id,
         }
 
-    async def prompt(self, message: str, client_name: Optional[str] = None, web_search: bool = False) -> str:
+    async def prompt(self, message: str, client_name: Optional[str] = None, web_search: bool = False, timeout: int = 60) -> str:
         """Send a prompt to the specified client using its session."""
         # TODO: Implement web search functionality when OpenAI supports it
         if web_search:
@@ -153,15 +153,43 @@ class OpenAIAgent:
             thread_id=session["thread_id"],
             assistant_id=session["assistant_id"],
         )
+        
+        # Improved polling with exponential backoff and timeout
+        start_time = asyncio.get_event_loop().time()
+        wait_time = 0.1  # Start with 100ms
+        max_wait = 2.0   # Cap at 2 seconds
+        
         while True:
             run = await client.beta.threads.runs.retrieve(
                 thread_id=session["thread_id"], run_id=run.id
             )
-            if run.status in {"completed", "failed"}:
+            
+            # Check for completion states
+            if run.status == "completed":
                 break
-            await asyncio.sleep(0.5)
-        if run.status == "failed":
-            raise RuntimeError(str(run.last_error))
+            elif run.status == "failed":
+                error_msg = run.last_error.message if run.last_error else "Unknown error"
+                raise RuntimeError(f"Assistant run failed: {error_msg}")
+            elif run.status == "cancelled":
+                raise RuntimeError("Assistant run was cancelled")
+            elif run.status == "expired":
+                raise RuntimeError("Assistant run expired")
+            elif run.status == "requires_action":
+                # Handle tool calls if needed in the future
+                raise RuntimeError("Assistant requires action - tool calls not yet implemented")
+            
+            # Check timeout
+            if asyncio.get_event_loop().time() - start_time > timeout:
+                # Cancel the run before timing out
+                await client.beta.threads.runs.cancel(
+                    thread_id=session["thread_id"], run_id=run.id
+                )
+                raise asyncio.TimeoutError(f"Assistant run timed out after {timeout} seconds")
+            
+            # Exponential backoff
+            await asyncio.sleep(wait_time)
+            wait_time = min(wait_time * 1.5, max_wait)
+        
         messages = await client.beta.threads.messages.list(
             thread_id=session["thread_id"],
             limit=1,
