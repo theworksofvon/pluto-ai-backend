@@ -1,4 +1,3 @@
-import threading
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from connections import Connections
@@ -6,7 +5,6 @@ from routers import router
 from agency import Agency
 from agents import PlayerPredictionAgent, GamePredictionAgent, TwitterAgent, RogueAgent
 from logger import logger
-from agency.mcp.mcp import init_mcp
 
 app = FastAPI(
     title="Pluto AI",
@@ -45,8 +43,6 @@ async def startup():
     await agency.agents["RogueAgent"].execute_task()
     logger.info(f"Agency initialized successfully and running, {agency}")
     
-    mcp_thread = threading.Thread(target=Connections.mcp.run, daemon=True)
-    mcp_thread.start()
 
 
 @app.on_event("shutdown")
@@ -56,4 +52,3 @@ async def shutdown():
     await Connections.close_connections()
     logger.info("Connections closed successfully")
     
-mcp = Connections.mcp
