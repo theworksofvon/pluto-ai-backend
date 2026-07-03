@@ -2367,18 +2367,22 @@ files = [
 
 [[package]]
 name = "nba-api"
-version = "1.8.0"
+version = "1.11.4"
 description = "An API Client package to access the APIs for NBA.com"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "nba_api-1.8.0-py3-none-any.whl", hash = "sha256:5adbbc32a7e0db54e952344c759076c42fdd4223110722110931df5dd36adab9"},
-    {file = "nba_api-1.8.0.tar.gz", hash = "sha256:1e13c2002793e5a0a550ea57415da28b91304cd75c3b813c1716b43859111c44"},
+    {file = "nba_api-1.11.4-py3-none-any.whl", hash = "sha256:f489b2a1d67ee4298f5173775b335d0e43e63455ed157a5612b542094b9f1963"},
+    {file = "nba_api-1.11.4.tar.gz", hash = "sha256:1dccd70b78f36f64260e1f353c4a02c1644147c4a2a5ce42fbd9f637d70bad3e"},
 ]
 
 [package.dependencies]
-numpy = {version = "<2.0.0", markers = "python_version < \"3.13\""}
+numpy = {version = ">=1.26.0", markers = "python_version < \"3.13\""}
+pandas = [
+    {version = ">=2.1.0", markers = "python_version < \"3.12\""},
+    {version = ">=2.2.0", markers = "python_version >= \"3.12\""},
+]
 requests = ">=2.32.3,<3.0.0"
 
 [[package]]
