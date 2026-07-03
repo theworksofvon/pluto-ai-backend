@@ -1,0 +1,4 @@
+Game_ID,GAME_DATE,MATCHUP,WL,PTS,player_name,home_away_flag,opponent,game_date_parsed,rolling_pts_5,rolling_min_5,rolling_fga_5,rolling_fg_pct_5,days_since_last_game,back_to_back_flag
+22200033,"OCT 22, 2022",MIL vs. HOU,W,0,AJ Green,1,HOU,2022-10-22,,,,,,0
+22200216,"NOV 16, 2022",MIL vs. CLE,W,3,AJ Green,1,CLE,2022-11-16,0.0,2.0,0.0,0.0,25.0,0
+22200251,"NOV 21, 2022",MIL vs. POR,W,0,AJ Green,1,POR,2022-11-21,1.5,8.5,2.0,0.125,5.0,0

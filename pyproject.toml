@@ -50,7 +50,7 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.poetry]
-package-mode = false
+packages = [{ include = "app" }]
 [tool.poetry.dependencies]
 [tool.poetry.group.dev.dependencies]
 pytest = "==8.3.5"
