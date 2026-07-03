@@ -3,7 +3,9 @@ from logging.config import fileConfig
 
 from alembic import context
 from app.core.config import get_settings
-from sqlalchemy import MetaData, pool
+from app.db import models  # noqa: F401
+from app.db.base import Base
+from sqlalchemy import pool
 from sqlalchemy.engine import Connection, make_url
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
@@ -12,7 +14,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = MetaData()
+target_metadata = Base.metadata
 
 
 def _sync_url(url: str) -> str:
