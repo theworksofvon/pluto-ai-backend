@@ -5,16 +5,22 @@ env:
 	python3 -m venv venv
 
 revision:
-	alembic revision --autogenerate -m "$(m)"
+	poetry run alembic revision --autogenerate -m "$(m)"
 
 upgrade:
-	alembic upgrade head
+	poetry run alembic upgrade head
 
 format:
 	poetry run black .
 
+lint:
+	poetry run ruff check app tests
+
+test:
+	poetry run pytest
+
 downgrade:
-	alembic downgrade "$(r)"
+	poetry run alembic downgrade "$(r)"
 
 start:
 	poetry run uvicorn main:app --host 0.0.0.0 --port 8080
