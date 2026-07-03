@@ -13,6 +13,12 @@ upgrade:
 format:
 	poetry run black .
 
+lint:
+	poetry run ruff check app tests
+
+test:
+	poetry run pytest
+
 downgrade:
 	alembic downgrade "$(r)"
 
